@@ -339,9 +339,12 @@ class EndToEnd(Harness):
         self.assertEqual(summary["totals"]["offramped_share"], 0)
 
     def test_outages_are_retried(self):
-        models = {**MODELS, "alpha/good": {**MODELS["alpha/good"], "flaky": 0.2}}
-        _, summary, _ = self.run_engine(make_cases(count=100), models=models)
+        # Each call fails 5% of the time. Four failures in a row has odds of about
+        # 6 in a million, so a failed call here would mean retries are broken.
+        models = {**MODELS, "alpha/good": {**MODELS["alpha/good"], "flaky": 0.05}}
+        _, summary, server = self.run_engine(make_cases(count=100), models=models)
         self.assertEqual(summary["totals"]["failed_calls"], 0)
+        self.assertGreater(server.requests, summary["totals"]["comparisons"] * 2)
 
     def test_a_flaky_candidate_is_scored_down_when_retries_run_out(self):
         models = {**MODELS, "alpha/good": {**MODELS["alpha/good"], "flaky": 1.0}}
