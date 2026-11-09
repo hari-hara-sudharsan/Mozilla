@@ -1,6 +1,11 @@
 # Offramp
 
+[![tests](https://github.com/hari-hara-sudharsan/Mozilla/actions/workflows/tests.yml/badge.svg?branch=otari-hackathon)](https://github.com/hari-hara-sudharsan/Mozilla/actions/workflows/tests.yml)
+
 **Prove you can leave your frontier model.**
+
+**[Open the Evidence Explorer](https://claude.ai/artifact/1gY3dtQbMJDjH545CV9voV)** to explore the live results in your browser.
+It recomputes every verdict from the real scores as you change the settings.
 
 Everyone would like to move traffic to open-weight models. Almost nobody does,
 because nobody can show it's safe. A vibe check on ten prompts won't convince the
@@ -58,6 +63,10 @@ results and workload, the combined [`policy.yaml`](evidence/policy.yaml), and
 uv run offramp verify evidence/live-2 --head 9a350b4471ef77a95d423ed3923d0a7a41d387e34c4821c67eff5851a021391b
 uv run offramp verify evidence/live-4-hard --head b443d82811a1636ed70c441f0af9bcf6da1563f67a9a03088b9190482a078cc2
 ```
+
+The explorer's source is in [`explorer/`](explorer/). `python explorer/build.py` embeds the
+evidence, and `node explorer/check.mjs` confirms that the browser's statistics match the
+Python results to floating-point precision. CI runs that check on every push.
 
 ### Every live run, including the ones that failed
 

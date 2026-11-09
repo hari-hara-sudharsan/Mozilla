@@ -1,0 +1,30 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Unit tests
+        run: PYTHONPATH=src python -m unittest discover -s tests -v
+      - name: Published evidence recomputes exactly
+        run: |
+          PYTHONPATH=src python -m offramp verify evidence/live-2 --head 9a350b4471ef77a95d423ed3923d0a7a41d387e34c4821c67eff5851a021391b
+          PYTHONPATH=src python -m offramp verify evidence/live-4-hard --head b443d82811a1636ed70c441f0af9bcf6da1563f67a9a03088b9190482a078cc2
+      - name: Explorer matches the Python statistics
+        run: |
+          python explorer/build.py
+          git diff --exit-code explorer/index.html
+          node explorer/check.mjs
+      - name: Offline demo runs
+        run: PYTHONPATH=src python -m offramp demo --out /tmp/demo
