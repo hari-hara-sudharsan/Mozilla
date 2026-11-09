@@ -102,19 +102,41 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
     summary = analysis.summarize(out / "ledger.jsonl")
     checks = {
-        "results.json": json.dumps(summary, indent=2),
-        "policy.yaml": analysis.policy_yaml(summary, head),
-        "policy.json": json.dumps(analysis.policies(summary), indent=2),
+        "results.json": same_values(json.loads((out / "results.json").read_text(encoding="utf-8")),
+                                    json.loads(json.dumps(summary))),
+        "policy.yaml": (out / "policy.yaml").read_text(encoding="utf-8")
+        == analysis.policy_yaml(summary, head),
+        "policy.json": json.loads((out / "policy.json").read_text(encoding="utf-8"))
+        == analysis.policies(summary),
     }
     failed = False
-    for name, expected in checks.items():
-        matches = (out / name).read_text(encoding="utf-8") == expected
+    for name, matches in checks.items():
         failed |= not matches
         print(f"{'Recomputed and matches' if matches else 'DOES NOT MATCH'}: {name}")
     if args.head and args.head != head:
         print(f"FAILED: expected head {args.head}")
         return 1
     return 1 if failed else 0
+
+
+def same_values(saved: object, recomputed: object, tolerance: float = 1e-9) -> bool:
+    """Equal, except that floats may differ in their last bits.
+
+    Maths libraries round log1p differently on Windows and Linux, so a recomputed
+    e-value can differ from the saved one in its last digit. Verdicts, routes and
+    every other value must still match exactly.
+    """
+    if isinstance(saved, float) or isinstance(recomputed, float):
+        if not isinstance(saved, (int, float)) or not isinstance(recomputed, (int, float)):
+            return False
+        return abs(saved - recomputed) <= tolerance * max(1.0, abs(saved), abs(recomputed))
+    if isinstance(saved, dict) and isinstance(recomputed, dict):
+        return saved.keys() == recomputed.keys() and all(
+            same_values(saved[key], recomputed[key], tolerance) for key in saved)
+    if isinstance(saved, list) and isinstance(recomputed, list):
+        return len(saved) == len(recomputed) and all(
+            same_values(a, b, tolerance) for a, b in zip(saved, recomputed))
+    return saved == recomputed
 
 
 def cmd_gate(args: argparse.Namespace) -> int:

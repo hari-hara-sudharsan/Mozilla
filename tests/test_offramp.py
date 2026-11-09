@@ -267,6 +267,23 @@ class EndToEnd(Harness):
         forged.close()
         self.assertEqual(cli.main(["verify", str(out)]), 1)
 
+    def test_verify_tolerates_last_digit_float_differences_between_platforms(self):
+        out, _, _ = self.run_engine(make_cases(count=100))
+        path = out / "results.json"
+        results = json.loads(path.read_text(encoding="utf-8"))
+        arm = results["segments"]["s"]["arms"]["alpha/good"]
+        arm["log_e_for"] = math.nextafter(arm["log_e_for"], math.inf)
+        path.write_text(json.dumps(results, indent=2), encoding="utf-8")
+        self.assertEqual(cli.main(["verify", str(out)]), 0)
+
+    def test_verify_still_catches_a_changed_verdict(self):
+        out, _, _ = self.run_engine(make_cases(count=100))
+        path = out / "results.json"
+        results = json.loads(path.read_text(encoding="utf-8"))
+        results["segments"]["s"]["arms"]["alpha/good"]["verdict"] = "rejected"
+        path.write_text(json.dumps(results, indent=2), encoding="utf-8")
+        self.assertEqual(cli.main(["verify", str(out)]), 1)
+
     def test_verify_catches_a_hand_edited_policy(self):
         out, _, _ = self.run_engine(make_cases("bad", 60))
         path = out / "policy.yaml"

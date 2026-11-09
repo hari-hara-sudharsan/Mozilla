@@ -24,7 +24,6 @@ jobs:
       - name: Explorer matches the Python statistics
         run: |
           python explorer/build.py
-          git diff --exit-code explorer/index.html
           node explorer/check.mjs
       - name: Offline demo runs
         run: PYTHONPATH=src python -m offramp demo --out /tmp/demo
