@@ -77,13 +77,14 @@ def grade_json_fields(text: str, spec: dict) -> float:
     """
     parsed = _extract_json(text)
     expected = spec["expected"]
+    tolerance = float(spec.get("tolerance", 1e-6))
     if not isinstance(parsed, dict):
         return 0.0
     hits = 0
     for key, value in expected.items():
         got = parsed.get(key)
         if isinstance(value, (int, float)) and not isinstance(value, bool):
-            hits += isinstance(got, (int, float)) and abs(got - value) < 1e-6
+            hits += isinstance(got, (int, float)) and abs(got - value) <= tolerance
         else:
             hits += _normalise(str(got)) == _normalise(str(value))
     if spec.get("strict"):
@@ -158,6 +159,17 @@ def vote_value(verdict: str, candidate_first: bool) -> float:
     if verdict == "tie":
         return 0.0
     return 1.0 if (verdict == "A") == candidate_first else -1.0
+
+
+def jury_score(votes: list[float]) -> float:
+    """Combine juror votes into a paired difference.
+
+    The answer is -1 only if every juror prefers the incumbent, and 0 otherwise.
+    Live runs showed jurors favouring longer answers and one rarely calling a tie,
+    so a jury win is not evidence. A jury can hold a candidate back, but it can
+    never earn one a route. Lowering d only makes the test more conservative.
+    """
+    return -1.0 if all(vote < 0 for vote in votes) else 0.0
 
 
 def family(model: str) -> str:

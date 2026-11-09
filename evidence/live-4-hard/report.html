@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offramp Report</title><style>
+:root{--bg:#f7f5f0;--panel:#fffdf9;--ink:#191816;--muted:#6a665e;--line:#ddd8cd;
+--ok:#1c7a4d;--ok-bg:#dcefe3;--bad:#b3341f;--bad-bg:#f7e0da;--wait:#8a6410;--wait-bg:#f5ead0;
+--s1:#2456c9;--s2:#c2410c;--s3:#0f766e;--s4:#7c3aed;--s5:#a21caf;--s6:#4d7c0f}
+@media (prefers-color-scheme:dark){:root{--bg:#141311;--panel:#1d1b19;--ink:#f1eee8;--muted:#a39e94;
+--line:#37332d;--ok:#6fd3a0;--ok-bg:#16352a;--bad:#f49a86;--bad-bg:#42201a;--wait:#e6bf63;--wait-bg:#3a2e12;
+--s1:#8db0ff;--s2:#fb9b63;--s3:#5fd4c6;--s4:#c4a5ff;--s5:#ee93f5;--s6:#b3dc66}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1040px;margin:0 auto;padding:40px 24px 80px}
+code,pre,.num{font-family:ui-monospace,"Cascadia Code",Menlo,Consolas,monospace}
+.num{font-variant-numeric:tabular-nums}
+.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+h1{font-size:clamp(34px,6vw,56px);line-height:1.06;letter-spacing:-.02em;margin:0 0 16px;max-width:17em}
+h2{font-size:22px;letter-spacing:-.01em;margin:56px 0 6px}
+h3{font-size:18px;margin:0}
+.lede{color:var(--muted);max-width:44em;margin:0}
+.sim{background:var(--wait-bg);color:var(--wait);border:1px solid currentColor;border-radius:8px;padding:12px 16px;margin:0 0 28px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:32px}
+.stat{background:var(--panel);padding:18px 20px}
+.stat b{display:block;font-size:24px;white-space:nowrap;line-height:1.15;letter-spacing:-.01em;font-weight:650}
+.stat span{color:var(--muted);font-size:14px}
+.segment{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;margin-top:16px}
+.head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 20px;align-items:baseline;margin-bottom:12px}
+.route{color:var(--muted);font-size:14px}
+.body{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+svg{width:100%;height:auto;display:block}
+svg text{font:11px ui-sans-serif,system-ui,sans-serif;fill:var(--muted)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-weight:500;color:var(--muted);text-align:right;padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;padding-left:0}
+tr:last-child td{border-bottom:0}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:99px}
+.proven{background:var(--ok-bg);color:var(--ok)}
+.rejected{background:var(--bad-bg);color:var(--bad)}
+.undecided,.dominated,.unavailable{background:var(--wait-bg);color:var(--wait)}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;font-size:13px;line-height:1.5;margin:12px 0 0}
+dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 20px;margin:12px 0 0;font-size:14px}
+dt{color:var(--muted)}dd{margin:0;overflow-wrap:anywhere}
+p.note{color:var(--muted);font-size:14px;max-width:48em}
+</style></head><body><main>
+
+<p class="eyebrow">Offramp evidence report · run 20261107-124324-b49da5</p>
+<h1>Nothing has earned its way off xai/grok-4.7 yet.</h1>
+<p class="lede">Offramp replayed this workload through Otari and tested each open-weight candidate for being no more than 10 points worse than the incumbent, at a 5% false discovery rate. Segments without proof stay where they are.</p>
+<div class="stats">
+  <div class="stat"><b class="num">0%</b><span>projected cost reduction</span></div>
+  <div class="stat"><b class="num">$19.826 → $19.826</b><span>per 1,000 requests</span></div>
+  <div class="stat"><b class="num">$2.003</b><span>model cost of this proof</span></div>
+  <div class="stat"><b class="num">$2.893</b><span>not spent, by stopping early</span></div>
+</div>
+
+<h2>Evidence by segment</h2>
+<p class="note">Each line is one candidate's evidence as cases accumulate, in log10 of the e-value.
+Crossing a dashed line settles the arm, and the run stops paying for it. Looking after every batch
+does not weaken the result. Final verdicts apply e-BH across all arms, so a line can end just short of
+the dashed line and still be proven.</p>
+
+<section class="segment">
+  <div class="head"><h3>hard-extract</h3>
+  <span class="route">50% of traffic · Stay on <code>xai/grok-4.7</code></span></div>
+  <div class="body">
+    <div><svg viewBox="0 0 940 200" role="img" aria-label="Evidence for each candidate as cases accumulate"><line x1="20" x2="928" y1="32.7" y2="32.7" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="27.7">proven</text><line x1="20" x2="928" y1="157.3" y2="157.3" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="170.3">rejected</text><line x1="20" x2="928" y1="95.0" y2="95.0" stroke="var(--line)"/><text x="14" y="99.0" text-anchor="end">0</text><text x="20" y="194">0</text><text x="928" y="194" text-anchor="end">48 cases</text><polyline points="20.0,95.0 38.9,94.5 57.8,93.6 76.8,92.3 95.7,91.1 114.6,89.9 133.5,88.6 152.4,87.4 171.3,86.1 190.2,84.9 209.2,83.7 228.1,82.4 247.0,81.2 265.9,79.9 284.8,78.7 303.8,77.5 322.7,76.2 341.6,75.0 360.5,73.7 379.4,72.5 398.3,71.3 417.2,70.0 436.2,68.8 455.1,67.5 474.0,66.3 492.9,65.0 511.8,63.8 530.8,62.6 549.7,61.3 568.6,60.1 587.5,90.1 606.4,88.8 625.3,95.0 644.2,95.0 663.2,95.0 682.1,95.0 701.0,95.0 719.9,95.0 738.8,95.0 757.8,95.0 776.7,95.0 795.6,95.0 814.5,95.0 833.4,95.0 852.3,95.0 871.2,95.0 890.2,95.0 909.1,95.0 928.0,95.0" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="95.0" r="3.5" fill="var(--s1)"/><polyline points="20.0,95.0 38.9,95.0 57.8,101.7 76.8,108.9 95.7,116.1 114.6,123.2 133.5,130.4 152.4,137.6 171.3,144.8 190.2,152.0 209.2,159.1" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="209.2" cy="159.1" r="3.5" fill="var(--s2)"/><polyline points="20.0,95.0 38.9,95.0 57.8,101.7 76.8,108.9 95.7,116.1 114.6,123.2 133.5,130.4 152.4,137.6 171.3,144.8 190.2,152.0 209.2,159.1" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="209.2" cy="159.1" r="3.5" fill="var(--s3)"/></svg></div>
+    <div class="scroll"><table>
+      <tr><th>Model</th><th>Verdict</th><th>Quality</th><th>vs incumbent</th><th>Cases</th><th>Per 1k req</th><th>p95</th></tr>
+      <tr><td>xai/grok-4.7 <span class="route">incumbent</span></td><td></td><td class="num">100.0%</td><td class="num">baseline</td><td></td><td class="num">$11.830</td><td class="num">43,152 ms</td></tr><tr><td><span class="dot" style="background:var(--s1)"></span>openai/gpt-oss-120b</td><td><span class="tag undecided" title="">undecided</span></td><td class="num">95.8%</td><td class="num">-4.2 pts</td><td class="num">48</td><td class="num">$0.261</td><td class="num">67,840 ms</td></tr><tr><td><span class="dot" style="background:var(--s2)"></span>deepseek/deepseek-v4-flash</td><td><span class="tag rejected" title="evidence crossed the early-stop threshold">rejected</span></td><td class="num">0.0%</td><td class="num">-100.0 pts</td><td class="num">10</td><td class="num">$0.030</td><td class="num">16,541 ms</td></tr><tr><td><span class="dot" style="background:var(--s3)"></span>z-ai/glm-4.7-flash</td><td><span class="tag rejected" title="evidence crossed the early-stop threshold">rejected</span></td><td class="num">0.0%</td><td class="num">-100.0 pts</td><td class="num">10</td><td class="num">$0.035</td><td class="num">1,936 ms</td></tr>
+    </table></div>
+  </div>
+</section>
+<section class="segment">
+  <div class="head"><h3>hard-math</h3>
+  <span class="route">50% of traffic · Stay on <code>xai/grok-4.7</code></span></div>
+  <div class="body">
+    <div><svg viewBox="0 0 940 200" role="img" aria-label="Evidence for each candidate as cases accumulate"><line x1="20" x2="928" y1="32.7" y2="32.7" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="27.7">proven</text><line x1="20" x2="928" y1="157.3" y2="157.3" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="170.3">rejected</text><line x1="20" x2="928" y1="95.0" y2="95.0" stroke="var(--line)"/><text x="14" y="99.0" text-anchor="end">0</text><text x="20" y="194">0</text><text x="928" y="194" text-anchor="end">47 cases</text><polyline points="20.0,95.0 39.3,94.5 58.6,93.6 78.0,92.3 97.3,91.1 116.6,89.9 135.9,88.6 155.2,87.4 174.6,86.1 193.9,84.9 213.2,83.7 232.5,82.4 251.8,81.2 271.1,79.9 290.5,78.7 309.8,77.5 329.1,76.2 348.4,75.0 367.7,73.7 387.1,72.5 406.4,71.3 425.7,70.0 445.0,68.8 464.3,67.5 483.7,66.3 503.0,65.0 522.3,63.8 541.6,62.6 560.9,61.3 580.3,60.1 599.6,58.8 618.9,57.6 638.2,56.4 657.5,55.1 676.9,53.9 696.2,52.6 715.5,51.4 734.8,50.2 754.1,48.9 773.4,47.7 792.8,46.4 812.1,45.2 831.4,44.0 850.7,42.7 870.0,41.5 889.4,40.2 908.7,39.0 928.0,37.8" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="37.8" r="3.5" fill="var(--s1)"/><polyline points="20.0,95.0 39.3,94.5 58.6,95.0 78.0,95.0 97.3,95.0 116.6,95.0 135.9,95.0 155.2,95.0 174.6,95.0 193.9,95.0 213.2,95.0 232.5,95.0 251.8,95.0 271.1,95.0 290.5,95.0 309.8,95.0 329.1,95.0 348.4,95.0 367.7,95.0 387.1,95.0 406.4,95.0 425.7,95.0 445.0,95.0 464.3,95.0 483.7,95.0 503.0,95.0 522.3,95.0 541.6,94.6 560.9,93.4 580.3,92.1 599.6,90.9 618.9,89.7 638.2,88.4 657.5,87.2 676.9,85.9 696.2,84.7 715.5,83.5 734.8,82.2 754.1,81.0 773.4,79.7 792.8,78.5 812.1,77.3 831.4,76.0 850.7,74.8 870.0,73.5 889.4,72.3 908.7,71.1 928.0,69.8" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="69.8" r="3.5" fill="var(--s2)"/><polyline points="20.0,95.0 39.3,95.0 58.6,101.7 78.0,108.9 97.3,116.1 116.6,123.2 135.9,130.4 155.2,137.6 174.6,136.5 193.9,135.4 213.2,142.6 232.5,149.7 251.8,156.9 271.1,155.8 290.5,154.7 309.8,161.9" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="309.8" cy="161.9" r="3.5" fill="var(--s3)"/></svg></div>
+    <div class="scroll"><table>
+      <tr><th>Model</th><th>Verdict</th><th>Quality</th><th>vs incumbent</th><th>Cases</th><th>Per 1k req</th><th>p95</th></tr>
+      <tr><td>xai/grok-4.7 <span class="route">incumbent</span></td><td></td><td class="num">100.0%</td><td class="num">baseline</td><td></td><td class="num">$27.822</td><td class="num">237,544 ms</td></tr><tr><td><span class="dot" style="background:var(--s1)"></span>openai/gpt-oss-120b</td><td><span class="tag undecided" title="">undecided</span></td><td class="num">100.0%</td><td class="num">+0.0 pts</td><td class="num">47</td><td class="num">$0.473</td><td class="num">240,249 ms</td></tr><tr><td><span class="dot" style="background:var(--s2)"></span>deepseek/deepseek-v4-flash</td><td><span class="tag undecided" title="">undecided</span></td><td class="num">97.9%</td><td class="num">-2.1 pts</td><td class="num">47</td><td class="num">$0.103</td><td class="num">18,201 ms</td></tr><tr><td><span class="dot" style="background:var(--s3)"></span>z-ai/glm-4.7-flash</td><td><span class="tag rejected" title="evidence crossed the early-stop threshold">rejected</span></td><td class="num">26.7%</td><td class="num">-73.3 pts</td><td class="num">15</td><td class="num">$0.205</td><td class="num">7,078 ms</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<h2>Routing policy</h2>
+<p class="note">Callers send <code>model: offramp-&lt;segment&gt;</code>. The incumbent stays as the last
+fallback, so an open-weight failure degrades to today's behaviour and does not drop the request.</p>
+<pre># Generated by Offramp. Callers send `model: &lt;policy name&gt;`.
+# Evidence: run 20261107-124324-b49da5, ledger head b443d82811a1636ed70c441f0af9bcf6da1563f67a9a03088b9190482a078cc2
+# Non-inferiority margin 0.1, false discovery rate 0.05
+routing:
+  policies:
+    offramp-hard-extract:
+      select:
+        - default: xai/grok-4.7
+    offramp-hard-math:
+      select:
+        - default: xai/grok-4.7
+</pre>
+
+<h2>Receipts</h2>
+<dl>
+  <dt>Ledger head</dt><dd><code>b443d82811a1636ed70c441f0af9bcf6da1563f67a9a03088b9190482a078cc2</code></dd>
+  <dt>Workload SHA-256</dt><dd><code>9bd0e35ace591d2c7748cd90b270cbca6b1f36b9e50e87791fd178baea16f180</code></dd>
+  <dt>Gateway</dt><dd><code>https://api.otari.ai/api/v1</code></dd>
+  <dt>Comparisons</dt><dd class="num">177</dd>
+  <dt>Run ended</dt><dd>run did not finish</dd>
+  <dt>Failed calls / dropped</dt><dd class="num">0 / 3</dd>
+  <dt>Answers cut off at the token limit</dt><dd class="num">xai/grok-4.7: 3</dd>
+  <dt>Run without temperature 0</dt><dd>none</dd>
+  <dt>Sandbox runs (estimated cost)</dt><dd class="num">not recorded in this run</dd>
+  <dt>Calls with no price</dt><dd class="num">0</dd>
+  <dt>Ledger-reported spend</dt><dd class="num">$2.0027</dd>
+  
+</dl>
+<p class="note">Run <code>offramp verify</code> on this folder to recheck the hash chain and recompute every
+verdict from the raw scores. The guarantee covers traffic like this sample. It does not cover later
+drift, so run it again when your workload changes.</p>
+</main></body></html>

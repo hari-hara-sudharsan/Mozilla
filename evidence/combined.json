@@ -1,0 +1,78 @@
+{
+  "traffic_that_can_move": 0.7546,
+  "cost_per_1k_requests_before": 6.2639,
+  "cost_per_1k_requests_after": 4.8771,
+  "cost_reduction_pct": 22.1,
+  "segments": {
+    "classify": {
+      "share": 0.1452,
+      "source_run": "live-2",
+      "route": "z-ai/glm-4.7-flash",
+      "verdicts": {
+        "openai/gpt-oss-120b": "proven",
+        "deepseek/deepseek-v4-flash": "proven",
+        "z-ai/glm-4.7-flash": "proven"
+      }
+    },
+    "code": {
+      "share": 0.0982,
+      "source_run": "live-2",
+      "route": "deepseek/deepseek-v4-flash",
+      "verdicts": {
+        "openai/gpt-oss-120b": "proven",
+        "deepseek/deepseek-v4-flash": "proven",
+        "z-ai/glm-4.7-flash": "proven"
+      }
+    },
+    "extract": {
+      "share": 0.2045,
+      "source_run": "live-2",
+      "route": "deepseek/deepseek-v4-flash",
+      "verdicts": {
+        "openai/gpt-oss-120b": "proven",
+        "deepseek/deepseek-v4-flash": "proven",
+        "z-ai/glm-4.7-flash": "proven"
+      }
+    },
+    "math": {
+      "share": 0.2045,
+      "source_run": "live-2",
+      "route": "deepseek/deepseek-v4-flash",
+      "verdicts": {
+        "openai/gpt-oss-120b": "proven",
+        "deepseek/deepseek-v4-flash": "proven",
+        "z-ai/glm-4.7-flash": "proven"
+      }
+    },
+    "rewrite": {
+      "share": 0.1022,
+      "source_run": "live-2",
+      "route": "deepseek/deepseek-v4-flash",
+      "verdicts": {
+        "openai/gpt-oss-120b": "dominated",
+        "deepseek/deepseek-v4-flash": "proven",
+        "z-ai/glm-4.7-flash": "undecided"
+      }
+    },
+    "hard-extract": {
+      "share": 0.1227,
+      "source_run": "live-4-hard",
+      "route": "xai/grok-4.7",
+      "verdicts": {
+        "openai/gpt-oss-120b": "undecided",
+        "deepseek/deepseek-v4-flash": "rejected",
+        "z-ai/glm-4.7-flash": "rejected"
+      }
+    },
+    "hard-math": {
+      "share": 0.1227,
+      "source_run": "live-4-hard",
+      "route": "xai/grok-4.7",
+      "verdicts": {
+        "openai/gpt-oss-120b": "undecided",
+        "deepseek/deepseek-v4-flash": "undecided",
+        "z-ai/glm-4.7-flash": "rejected"
+      }
+    }
+  }
+}

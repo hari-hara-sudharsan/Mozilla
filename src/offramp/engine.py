@@ -28,6 +28,9 @@ class Config:
     judges: list[str] = field(default_factory=list)
     decision_model: str | None = None
     budget_usd: float = 2.0
+    # The sandbox route reports no price. Estimated from a live run in which about
+    # 1,270 sandbox runs accounted for about $13.50 that no model call explained.
+    sandbox_cost_usd: float = 0.011
     margin: float = 0.10
     alpha: float = 0.05
     seed: int = 7
@@ -113,6 +116,7 @@ class Engine:
             request_id=reply.request_id,
             prompt_tokens=reply.prompt_tokens,
             completion_tokens=reply.completion_tokens,
+            finish_reason=reply.finish_reason,
             text_sha256=sha256(reply.text),
         )
         if self.config.store_text:
@@ -150,7 +154,7 @@ class Engine:
             if vote is not None:
                 votes.append(vote)
 
-        return (sum(votes) / len(votes) if votes else None), calls, None
+        return (graders.jury_score(votes) if votes else None), calls, None
 
     def _decision_vote(self, case: Case, candidate: str, request: str, incumbent_text: str,
                        candidate_text: str, index: int) -> tuple[float | None, dict]:
@@ -230,6 +234,11 @@ class Engine:
             calls.append(record)
             if reply is None:
                 return CaseResult(case, None, calls, [], dropped=record["error"])
+            if reply.finish_reason == "length":
+                # A cut-off baseline isn't a fair baseline, and a candidate must
+                # never earn credit from one.
+                return CaseResult(case, None, calls, [],
+                                  dropped="incumbent answer was cut off at the token limit")
             text = reply.text
 
         try:
@@ -332,7 +341,10 @@ class Engine:
     def _can_afford(self, plan: list[tuple[Case, list[str]]], gateway_start: float | None) -> bool:
         calls = sum(len(candidates) + 1 for _, candidates in plan)
         average = self.spent / self.calls_priced if self.calls_priced else 0.0
-        if self.spent + 1.5 * average * calls > self.config.budget_usd:
+        sandbox = self.client.sandbox_runs + sum(
+            len(names) + 1 for case, names in plan if case.grader["type"] == "python_tests")
+        committed = self.spent + sandbox * self.config.sandbox_cost_usd
+        if committed + 1.5 * average * calls > self.config.budget_usd:
             return False
         if gateway_start is None:
             return True
@@ -381,6 +393,8 @@ class Engine:
             self._set_status(arm_key, "open", stop_reason)
         self.ledger.append(
             "run_end", stop_reason=stop_reason, reported_spend_usd=round(self.spent, 6),
+            models_refusing_temperature=sorted(self.client.refuses_temperature),
+            sandbox_runs=self.client.sandbox_runs,
             gateway_remaining_usd=self.client.remaining_usd(),
         )
         self.ledger.close()

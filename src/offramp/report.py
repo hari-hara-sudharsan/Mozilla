@@ -159,6 +159,17 @@ def _segment(name: str, segment: dict, candidates: list[str], incumbent: str,
 </section>"""
 
 
+def _sandbox(totals: dict) -> str:
+    if totals["sandbox_runs"] is None:
+        return "not recorded in this run"
+    return f"{totals['sandbox_runs']} (about {_money(totals['sandbox_estimate_usd'])})"
+
+
+def _truncated(totals: dict) -> str:
+    counts = totals["truncated_by_model"]
+    return ", ".join(f"{model}: {n}" for model, n in sorted(counts.items())) or "none"
+
+
 def render(summary: dict, head: str) -> str:
     totals = summary["totals"]
     config = summary["config"]
@@ -199,7 +210,7 @@ def render(summary: dict, head: str) -> str:
 <div class="stats">
   <div class="stat"><b class="num">{"n/a" if savings is None else f"{savings:.0f}%"}</b><span>projected cost reduction</span></div>
   <div class="stat"><b class="num">{_per_thousand(totals["baseline_cost_per_request"])} → {_per_thousand(totals["routed_cost_per_request"])}</b><span>per 1,000 requests</span></div>
-  <div class="stat"><b class="num">{_money(totals["spent_usd"], 3)}</b><span>cost of this proof</span></div>
+  <div class="stat"><b class="num">{_money(totals["spent_usd"], 3)}</b><span>model cost of this proof</span></div>
   <div class="stat"><b class="num">{_money(totals["saved_by_stopping_usd"], 3)}</b><span>not spent, by stopping early</span></div>
 </div>
 
@@ -223,6 +234,9 @@ fallback, so an open-weight failure degrades to today's behaviour and does not d
   <dt>Comparisons</dt><dd class="num">{totals["comparisons"]:,}</dd>
   <dt>Run ended</dt><dd>{escape(summary["stop_reason"])}</dd>
   <dt>Failed calls / dropped</dt><dd class="num">{totals["failed_calls"]} / {totals["dropped"]}</dd>
+  <dt>Answers cut off at the token limit</dt><dd class="num">{escape(_truncated(totals))}</dd>
+  <dt>Run without temperature 0</dt><dd>{escape(", ".join(totals["models_refusing_temperature"]) or "none")}</dd>
+  <dt>Sandbox runs (estimated cost)</dt><dd class="num">{escape(_sandbox(totals))}</dd>
   <dt>Calls with no price</dt><dd class="num">{totals["unpriced_calls"]}</dd>
   <dt>Ledger-reported spend</dt><dd class="num">{_money(totals["spent_usd"], 4)}</dd>
   {gateway_line}

@@ -189,6 +189,11 @@ class _Handler(BaseHTTPRequestHandler):
             self._fail(503, "upstream_error", "simulated outage", {"Retry-After": "0"})
             return
 
+        if profile.get("no_temperature") and "temperature" in body:
+            self._send(400, {"detail": "No model accepted the request (2 attempts).",
+                             "code": "all_candidates_rejected"})
+            return
+
         messages = body["messages"]
         if messages[0].get("content") == JUDGE_SYSTEM:
             text = self._judge(model, messages[1]["content"])
@@ -207,7 +212,8 @@ class _Handler(BaseHTTPRequestHandler):
             sim.spent += cost
         self._send(200, {
             "model": model,
-            "choices": [{"message": {"role": "assistant", "content": text}}],
+            "choices": [{"message": {"role": "assistant", "content": text},
+                         "finish_reason": profile.get("finish_reason", "stop")}],
             "usage": {"prompt_tokens": prompt_tokens, "completion_tokens": completion_tokens,
                       "cost_usd": f"{cost:.6f}", "pricing_source": "simulator"},
         })

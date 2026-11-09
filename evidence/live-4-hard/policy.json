@@ -1,0 +1,16 @@
+{
+  "offramp-hard-extract": {
+    "select": [
+      {
+        "default": "xai/grok-4.7"
+      }
+    ]
+  },
+  "offramp-hard-math": {
+    "select": [
+      {
+        "default": "xai/grok-4.7"
+      }
+    ]
+  }
+}

@@ -11,8 +11,10 @@ continuous monitoring.
 
 For each case, both models answer and a grader scores them. That gives a paired
 difference `d` in `[-1, 1]`, where positive favours the candidate. For checkable
-graders, `d = q_candidate - q_incumbent`. For a jury, `d` is the mean vote, with
-each juror voting `+1`, `0` or `-1`.
+graders, `d = q_candidate - q_incumbent`. For a jury, `d = -1` when every juror
+prefers the incumbent and `0` otherwise, so jury evidence can only count against a
+candidate. A tie-heavy `d` still lets a candidate pass, so the jury's margin reads as
+"how often do independent jurors unanimously prefer the incumbent".
 
 Pairing matters because it removes case difficulty from the comparison. A hard case
 that defeats both models contributes zero, not noise.

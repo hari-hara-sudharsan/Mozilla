@@ -1,9 +1,11 @@
+import io
 import json
 import math
 import random
 import tempfile
 import threading
 import unittest
+import urllib.error
 import urllib.request
 from pathlib import Path
 from unittest import mock
@@ -150,6 +152,17 @@ class Graders(unittest.TestCase):
         self.assertEqual(graders.vote_value("B", False), 1.0)
         self.assertEqual(graders.vote_value("tie", True), 0.0)
 
+    def test_a_jury_can_hold_a_candidate_back_but_never_earn_it_a_route(self):
+        self.assertEqual(graders.jury_score([-1.0, -1.0]), -1.0)
+        self.assertEqual(graders.jury_score([-1.0, 0.0]), 0.0)
+        self.assertEqual(graders.jury_score([-1.0, 1.0]), 0.0)
+        self.assertEqual(graders.jury_score([1.0, 1.0]), 0.0)
+
+    def test_json_tolerance_applies_to_numbers(self):
+        spec = {"tolerance": 0.011, "strict": True, "expected": {"total": 10.0}}
+        self.assertEqual(graders.grade_json_fields('{"total": 10.01}', spec), 1.0)
+        self.assertEqual(graders.grade_json_fields('{"total": 10.02}', spec), 0.0)
+
     def test_two_jurors_see_opposite_orders(self):
         for case in range(20):
             first = graders.candidate_goes_first(str(case), "m", 0)
@@ -267,6 +280,17 @@ class EndToEnd(Harness):
         self.assertEqual(summary["stop_reason"], "budget reached")
         self.assertLessEqual(summary["totals"]["spent_usd"], 0.0004 * 1.1)
 
+    def test_sandbox_runs_count_against_the_budget(self):
+        models = {
+            "inc/big": {"rate": 0.001, "skill": {"s": 1.0}},
+            "alpha/good": {"rate": 0.001, "skill": {"s": 1.0}},
+        }
+        config = Config("inc/big", ["alpha/good"], budget_usd=0.5, sandbox_cost_usd=0.01, batch=4)
+        _, summary, _ = self.run_engine(make_cases(count=200, kind="code"), config, models)
+        self.assertEqual(summary["stop_reason"], "budget reached")
+        self.assertLessEqual(summary["totals"]["sandbox_estimate_usd"], 0.5)
+        self.assertGreater(summary["totals"]["sandbox_runs"], 0)
+
     def test_gateway_budget_refusal_ends_the_run_with_a_valid_ledger(self):
         config = Config("inc/big", ["alpha/good"], budget_usd=5.0)
         out, summary, _ = self.run_engine(make_cases(count=400), config, cap_usd=0.0005)
@@ -286,6 +310,33 @@ class EndToEnd(Harness):
         arms = summary["segments"]["s"]["arms"]
         self.assertEqual(arms["ghost/none"]["verdict"], "unavailable")
         self.assertEqual(arms["alpha/good"]["verdict"], "proven")
+
+    def test_a_model_that_refuses_temperature_still_runs_and_is_disclosed(self):
+        models = {**MODELS, "inc/big": {**MODELS["inc/big"], "no_temperature": True}}
+        out, summary, _ = self.run_engine(make_cases(count=100), models=models)
+        self.assertEqual(summary["totals"]["failed_calls"], 0)
+        self.assertEqual(summary["totals"]["models_refusing_temperature"], ["inc/big"])
+        self.assertIn("Run without temperature 0",
+                      (out / "report.html").read_text(encoding="utf-8"))
+
+    def test_a_real_bad_request_is_not_hidden_by_the_temperature_retry(self):
+        server = Simulator([], {}).start()
+        self.addCleanup(server.stop)
+        with self.assertRaises(OtariError):
+            Otari("k", server.base_url).chat(
+                "nope/none", [{"role": "user", "content": "x"}], {"temperature": 0})
+
+    def test_truncated_answers_are_counted(self):
+        models = {**MODELS, "alpha/good": {**MODELS["alpha/good"], "finish_reason": "length"}}
+        _, summary, _ = self.run_engine(make_cases(count=30), models=models)
+        self.assertGreater(summary["totals"]["truncated_by_model"]["alpha/good"], 0)
+
+    def test_a_cut_off_incumbent_gives_the_candidate_no_credit(self):
+        models = {**MODELS, "inc/big": {**MODELS["inc/big"], "finish_reason": "length"}}
+        _, summary, _ = self.run_engine(make_cases(count=30), models=models)
+        self.assertEqual(summary["totals"]["comparisons"], 0)
+        self.assertEqual(summary["totals"]["dropped"], 30)
+        self.assertEqual(summary["totals"]["offramped_share"], 0)
 
     def test_outages_are_retried(self):
         models = {**MODELS, "alpha/good": {**MODELS["alpha/good"], "flaky": 0.2}}
@@ -401,6 +452,16 @@ class Client(Harness):
             Otari("k", server.base_url).chat("inc/big", [{"role": "user", "content": "x"}])
         self.assertEqual(caught.exception.code, "insufficient_funds")
         self.assertTrue(caught.exception.budget_exhausted)
+
+    def test_a_request_still_in_progress_is_waited_for(self):
+        def conflict():
+            return urllib.error.HTTPError(
+                "u", 409, "busy", {}, io.BytesIO(b'{"detail": "still in progress"}'))
+
+        client = Otari("k", "http://unused", backoff=0.0, max_retries=1)
+        replies = [conflict() for _ in range(6)] + [({"ok": True}, {})]
+        with mock.patch.object(client, "_once", side_effect=replies):
+            self.assertEqual(client.request("POST", "/x")[0], {"ok": True})
 
     def test_missing_key_is_explained(self):
         with self.assertRaisesRegex(ValueError, "OTARI_API_KEY"):

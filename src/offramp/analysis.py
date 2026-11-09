@@ -40,6 +40,7 @@ def summarize(path: Path) -> dict:
     incumbent_latency: dict[str, list[float]] = defaultdict(list)
     by_role: dict[str, float] = defaultdict(float)
     unpriced = failures = drops = 0
+    truncated: dict[str, int] = defaultdict(int)
 
     for entry in ledger_module.read(path):
         event, data = entry["event"], entry["data"]
@@ -66,6 +67,8 @@ def summarize(path: Path) -> dict:
             if not data.get("ok"):
                 failures += 1
                 continue
+            if data.get("finish_reason") == "length":
+                truncated[data["model"]] += 1
             cost = data.get("cost_usd")
             if cost is None:
                 unpriced += not data.get("recorded")
@@ -173,6 +176,13 @@ def summarize(path: Path) -> dict:
             "unpriced_calls": unpriced,
             "failed_calls": failures,
             "dropped": drops,
+            "truncated_by_model": dict(truncated),
+            "sandbox_runs": end.get("sandbox_runs"),
+            "sandbox_estimate_usd": (
+                end["sandbox_runs"] * config.get("sandbox_cost_usd", 0.011)
+                if end.get("sandbox_runs") is not None else None
+            ),
+            "models_refusing_temperature": end.get("models_refusing_temperature", []),
             "gateway_measured_usd": (
                 gateway_before - gateway_after
                 if gateway_before is not None and gateway_after is not None else None

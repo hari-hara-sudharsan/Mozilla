@@ -69,7 +69,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     cases, digest = workload.load(Path(args.workload))
     config = Config(
         incumbent=args.incumbent, candidates=_split(args.candidates), judges=_split(args.judges),
-        decision_model=args.decision_model, budget_usd=args.budget, margin=args.margin,
+        decision_model=args.decision_model, budget_usd=args.budget,
+        sandbox_cost_usd=args.sandbox_cost, margin=args.margin,
         alpha=args.alpha, seed=args.seed, batch=args.batch, workers=args.workers,
         store_text=args.store_text,
     )
@@ -219,7 +220,12 @@ def cmd_plan(args: argparse.Namespace) -> int:
             cost = len(candidates) * sum(_call_cost(pricing, tokens, 20) for tokens in jury_in)
             worst += cost
             print(f"  ${cost:8.4f}  {'judge':<10} {judge}")
-    print(f"  ${worst:8.4f}  total, before sandbox runs (not priced in the catalog)")
+    code_cases = sum(case.grader["type"] == "python_tests" for case in cases)
+    sandbox = code_cases * (len(candidates) + 1) * args.sandbox_cost
+    worst += sandbox
+    print(f"  ${sandbox:8.4f}  sandbox   {code_cases * (len(candidates) + 1)} runs, estimated "
+          f"at ${args.sandbox_cost} each")
+    print(f"  ${worst:8.4f}  total")
     print("Reasoning models can use far more output tokens than this. --budget stays a "
           "hard stop whichever way it goes.")
     return 0
@@ -256,6 +262,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--judges", help="comma-separated jury models from other families")
     run.add_argument("--decision-model", help="add a juror through Otari's Decisions API")
     run.add_argument("--budget", type=float, default=2.0, help="USD ceiling for this run")
+    run.add_argument("--sandbox-cost", type=float, default=0.011,
+                     help="estimated USD per sandbox run, counted against --budget")
     run.add_argument("--margin", type=float, default=0.10, help="largest acceptable quality loss")
     run.add_argument("--alpha", type=float, default=0.05, help="false discovery rate")
     run.add_argument("--seed", type=int, default=7)
@@ -297,6 +305,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--candidates", required=True)
     plan.add_argument("--judges")
     plan.add_argument("--output-tokens", type=int, default=300)
+    plan.add_argument("--sandbox-cost", type=float, default=0.011)
     plan.set_defaults(func=cmd_plan)
 
     models = commands.add_parser("models", help="list models this key can use")

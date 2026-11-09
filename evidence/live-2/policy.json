@@ -1,0 +1,77 @@
+{
+  "offramp-classify": {
+    "select": [
+      {
+        "default": "z-ai/glm-4.7-flash"
+      }
+    ],
+    "on_failure": [
+      "deepseek/deepseek-v4-flash",
+      "openai/gpt-oss-120b",
+      "xai/grok-4.7"
+    ]
+  },
+  "offramp-code": {
+    "select": [
+      {
+        "default": "deepseek/deepseek-v4-flash"
+      }
+    ],
+    "on_failure": [
+      "z-ai/glm-4.7-flash",
+      "openai/gpt-oss-120b",
+      "xai/grok-4.7"
+    ]
+  },
+  "offramp-extract": {
+    "select": [
+      {
+        "default": "deepseek/deepseek-v4-flash"
+      }
+    ],
+    "on_failure": [
+      "z-ai/glm-4.7-flash",
+      "openai/gpt-oss-120b",
+      "xai/grok-4.7"
+    ]
+  },
+  "offramp-hard-extract": {
+    "select": [
+      {
+        "default": "xai/grok-4.7"
+      }
+    ]
+  },
+  "offramp-hard-math": {
+    "select": [
+      {
+        "default": "deepseek/deepseek-v4-flash"
+      }
+    ],
+    "on_failure": [
+      "xai/grok-4.7"
+    ]
+  },
+  "offramp-math": {
+    "select": [
+      {
+        "default": "deepseek/deepseek-v4-flash"
+      }
+    ],
+    "on_failure": [
+      "openai/gpt-oss-120b",
+      "z-ai/glm-4.7-flash",
+      "xai/grok-4.7"
+    ]
+  },
+  "offramp-rewrite": {
+    "select": [
+      {
+        "default": "deepseek/deepseek-v4-flash"
+      }
+    ],
+    "on_failure": [
+      "xai/grok-4.7"
+    ]
+  }
+}

@@ -9,7 +9,8 @@ from pathlib import Path
 from .ledger import canonical, sha256
 
 GRADERS = {"exact", "contains", "regex", "number", "json_fields", "python_tests", "jury"}
-DEFAULT_PARAMS = {"temperature": 0, "max_tokens": 1024}
+# Generous, so a reasoning model isn't failed for running out of room to think.
+DEFAULT_PARAMS = {"temperature": 0, "max_tokens": 4096}
 
 
 @dataclass

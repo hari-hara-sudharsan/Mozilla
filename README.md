@@ -26,6 +26,57 @@ uv run offramp demo --out runs/demo
 The demo uses fictional models on a local simulator, and its report says so on
 every page. It shows how Offramp works, and it says nothing about any real model.
 
+## Results from a live run
+
+Run through hosted Otari on November 7, 2026. The incumbent was `xai/grok-4.7`.
+The candidates were `openai/gpt-oss-120b`, `deepseek/deepseek-v4-flash` and
+`z-ai/glm-4.7-flash`, and the jurors were `google/gemma-3-27b-it` and
+`meta/llama-3.3-70b-instruct`. The margin was 10 points, with a 5% false discovery
+rate. The workload is synthetic, from `examples/make_workload.py`, not production
+traffic.
+
+| Segment | Share | Route | Evidence |
+| --- | ---: | --- | --- |
+| Classification | 14.5% | `z-ai/glm-4.7-flash` | All three candidates proven |
+| Extraction | 20.4% | `deepseek/deepseek-v4-flash` | All three proven |
+| Math | 20.4% | `deepseek/deepseek-v4-flash` | All three proven |
+| Code, graded in Otari's sandbox | 9.8% | `deepseek/deepseek-v4-flash` | All three proven |
+| Writing, by jury | 10.2% | `deepseek/deepseek-v4-flash` | DeepSeek proven, GLM undecided |
+| Hard extraction | 12.3% | **Stay on Grok** | DeepSeek and GLM rejected, 0 of 10 each. gpt-oss undecided at 95.8%. |
+| Hard math | 12.3% | **Stay on Grok** | GLM rejected at 26.7%. gpt-oss (47/47) and DeepSeek undecided. |
+
+**75.5% of requests can move, but that cuts total cost by only 22%**, from $6.26 to
+$4.88 per 1,000 requests. The hard segments carry most of the cost, at $11.83 and
+$27.82 per 1,000 on Grok, and they are exactly what the cheap models couldn't prove
+they can do. Only per-segment evidence shows that.
+
+The evidence is in [`evidence/`](evidence/). It holds each run's ledger, report,
+results and workload, the combined [`policy.yaml`](evidence/policy.yaml), and
+[`combined.json`](evidence/combined.json). To recheck it:
+
+```bash
+uv run offramp verify evidence/live-2 --head 9a350b4471ef77a95d423ed3923d0a7a41d387e34c4821c67eff5851a021391b
+uv run offramp verify evidence/live-4-hard --head b443d82811a1636ed70c441f0af9bcf6da1563f67a9a03088b9190482a078cc2
+```
+
+### Every live run, including the ones that failed
+
+| Run | Model cost | Outcome |
+| --- | ---: | --- |
+| Pilot, 20 cases | $0.04 | Found a code test that wrongly failed every model, a gateway timeout scored as a model failure, and Grok refusing `temperature`. All fixed. |
+| Code check, 96 cases | $0.24 | Validated every code test: none was failed by every model. |
+| `live-1` | $0.75 | Showed every model passing. An audit found the tasks too easy and the jury favouring longer answers. Superseded. |
+| `live-2` | $3.15 | **Run of record** for the five easy segments. Its hard-math result is invalid, because Grok was cut off by the token limit on 18 answers. |
+| `live-3` | $2.61 | Stopped twice, once when the machine ran low on memory and once when the wallet ran out. No verdicts. |
+| `live-4-hard` | $2.00 | **Run of record** for the two hard segments, with a 16,000-token limit. Stopped early by low memory, but its chain verifies and every verdict in it holds, since an e-process may be stopped at any time. |
+
+Sandbox runs report no price. About 1,250 of them appear to have cost about $13.50
+on top of the table above, inferred from the wallet, not confirmed. That is why
+`--budget` now counts them.
+
+The two runs of record each control the false discovery rate on their own. The
+combined claim spans two runs and two accounts, and has no joint guarantee.
+
 ## What makes it different
 
 **It may look at the results after every batch, and that costs no validity.**
@@ -48,10 +99,12 @@ keeps the incumbent.
 by code. Generated code runs against its tests in Otari's sandbox, and never on
 your machine. Only open-ended answers go to a jury.
 
-**The jury can't favour itself.** Jurors must come from a different model family
-to both the candidate and the incumbent, or Offramp refuses to grade. They never
-learn which answer is which, and each pair of jurors sees opposite orders, so
-position bias cancels.
+**The jury can hold a model back, but never earn it a route.** Jurors must come
+from a different model family to both the candidate and the incumbent, or Offramp
+refuses to grade. They never learn which answer is which, and a pair of jurors sees
+opposite orders. A candidate is marked down only when every juror prefers the
+incumbent, and a jury win never counts in its favour. Live runs showed why: jurors
+favoured longer answers, so preferring a candidate is not evidence it is better.
 
 **The result is a deployable artifact.** You get one Otari routing policy per
 segment, with the incumbent as the last fallback, so an open-weight failure
@@ -68,9 +121,9 @@ is pinned to it.
 | --- | --- |
 | Open-weight models | They are the point of the tool. Candidates and jurors all go through one endpoint. |
 | Multiple models, distinct roles | Incumbent, candidates and a cross-family jury each play a separate role. |
-| Routing and fallbacks | The output is `routing.policies` with `on_failure` chains, written by `offramp apply` or pasted into config. |
+| Routing and fallbacks | The output is `routing.policies` with `on_failure` chains. On hosted Otari, create them on the Routing page, since an API key can't write them. `offramp apply` serves deployments where the caller can. |
 | Code execution | `POST /code/execute` grades generated code in the sandbox. |
-| Decisions API | `--decision-model` adds a typed `choice` juror through `POST /decisions`. |
+| Decisions API | `--decision-model` adds a typed `choice` juror through `POST /decisions`, on deployments with a decision provider. Hosted Otari had none configured as of November 7, 2026, so the published run doesn't use it. |
 | Budgets | `--budget` is a hard stop, enforced from `usage.cost_usd`. Offramp stops cleanly on `403 budget_exceeded` and `402 insufficient_funds`. It also reads `GET /key/budget` where a deployment serves it, which hosted Otari did not as of November 6, 2026. |
 | Exact cost | `usage.cost_usd` feeds the ledger, the cost comparison and the savings projection. |
 | Request tags | Every call carries `metadata` with its run, role and segment, so spend can be grouped by tag in Otari. |
@@ -96,8 +149,8 @@ uv run offramp plan --workload examples/workload.jsonl \
   --judges google/gemma-3-27b-it,meta/llama-3.3-70b-instruct
 ```
 
-Run the bundled workload of 394 checkable cases across classification, extraction,
-math, code and writing:
+Run the bundled synthetic workload across classification, extraction, math, code
+(24 distinct tasks, each phrased four ways) and writing:
 
 ```bash
 uv run offramp run --workload examples/workload.jsonl \
@@ -111,7 +164,7 @@ uv run offramp verify runs/first
 Open `runs/first/report.html`. Deploy `policy.yaml`, or:
 
 ```bash
-uv run offramp apply runs/first --workspace-id <id>    # needs an org owner or admin
+uv run offramp apply runs/first --workspace-id <id>    # needs management access, not an API key
 ```
 
 ### Use your real traffic
@@ -165,13 +218,17 @@ or prompt change can't quietly lose its evidence. It also refuses simulated runs
   you chose. Weak graders give weak proof.
 - A jury is still a model's opinion, even with these protections. Prefer checkable
   graders wherever you can.
+- A model that refuses `temperature` runs at its default, which the report discloses.
+  Answers cut off at the token limit count as given, and are listed per model.
 - `weight` affects the savings projection and traffic share, not the statistics.
 - If a candidate can't answer after retries, the case counts against it. If the
-  incumbent can't answer, the case is dropped.
+  incumbent can't answer, or its answer is cut off at the token limit, the case is
+  dropped, so a handicapped baseline never gives a candidate credit.
 - The ledger is hash-chained, not signed. It proves a run is unchanged only if you
   have published its head.
-- Sandbox runs don't appear in the ledger's cost, since that route reports no price,
-  so `--budget` doesn't count them. Check the Otari dashboard for the true total.
+- `/code/execute` reports no price, so sandbox cost is an estimate. `--budget` counts
+  each run at `--sandbox-cost`, $0.011 by default, inferred from one live account. Set
+  a spend ceiling in Otari too, and check the dashboard for the true total.
 
 ## Development
 

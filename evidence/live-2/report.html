@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offramp Report</title><style>
+:root{--bg:#f7f5f0;--panel:#fffdf9;--ink:#191816;--muted:#6a665e;--line:#ddd8cd;
+--ok:#1c7a4d;--ok-bg:#dcefe3;--bad:#b3341f;--bad-bg:#f7e0da;--wait:#8a6410;--wait-bg:#f5ead0;
+--s1:#2456c9;--s2:#c2410c;--s3:#0f766e;--s4:#7c3aed;--s5:#a21caf;--s6:#4d7c0f}
+@media (prefers-color-scheme:dark){:root{--bg:#141311;--panel:#1d1b19;--ink:#f1eee8;--muted:#a39e94;
+--line:#37332d;--ok:#6fd3a0;--ok-bg:#16352a;--bad:#f49a86;--bad-bg:#42201a;--wait:#e6bf63;--wait-bg:#3a2e12;
+--s1:#8db0ff;--s2:#fb9b63;--s3:#5fd4c6;--s4:#c4a5ff;--s5:#ee93f5;--s6:#b3dc66}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1040px;margin:0 auto;padding:40px 24px 80px}
+code,pre,.num{font-family:ui-monospace,"Cascadia Code",Menlo,Consolas,monospace}
+.num{font-variant-numeric:tabular-nums}
+.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+h1{font-size:clamp(34px,6vw,56px);line-height:1.06;letter-spacing:-.02em;margin:0 0 16px;max-width:17em}
+h2{font-size:22px;letter-spacing:-.01em;margin:56px 0 6px}
+h3{font-size:18px;margin:0}
+.lede{color:var(--muted);max-width:44em;margin:0}
+.sim{background:var(--wait-bg);color:var(--wait);border:1px solid currentColor;border-radius:8px;padding:12px 16px;margin:0 0 28px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:32px}
+.stat{background:var(--panel);padding:18px 20px}
+.stat b{display:block;font-size:24px;white-space:nowrap;line-height:1.15;letter-spacing:-.01em;font-weight:650}
+.stat span{color:var(--muted);font-size:14px}
+.segment{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;margin-top:16px}
+.head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 20px;align-items:baseline;margin-bottom:12px}
+.route{color:var(--muted);font-size:14px}
+.body{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+svg{width:100%;height:auto;display:block}
+svg text{font:11px ui-sans-serif,system-ui,sans-serif;fill:var(--muted)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-weight:500;color:var(--muted);text-align:right;padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;padding-left:0}
+tr:last-child td{border-bottom:0}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:99px}
+.proven{background:var(--ok-bg);color:var(--ok)}
+.rejected{background:var(--bad-bg);color:var(--bad)}
+.undecided,.dominated,.unavailable{background:var(--wait-bg);color:var(--wait)}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;font-size:13px;line-height:1.5;margin:12px 0 0}
+dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 20px;margin:12px 0 0;font-size:14px}
+dt{color:var(--muted)}dd{margin:0;overflow-wrap:anywhere}
+p.note{color:var(--muted);font-size:14px;max-width:48em}
+</style></head><body><main>
+
+<p class="eyebrow">Offramp evidence report · run 20261107-100940-3eabd3</p>
+<h1>88% of this workload can leave xai/grok-4.7.</h1>
+<p class="lede">Offramp replayed this workload through Otari and tested each open-weight candidate for being no more than 10 points worse than the incumbent, at a 5% false discovery rate. Segments without proof stay where they are.</p>
+<div class="stats">
+  <div class="stat"><b class="num">70%</b><span>projected cost reduction</span></div>
+  <div class="stat"><b class="num">$4.888 → $1.479</b><span>per 1,000 requests</span></div>
+  <div class="stat"><b class="num">$3.148</b><span>model cost of this proof</span></div>
+  <div class="stat"><b class="num">$1.914</b><span>not spent, by stopping early</span></div>
+</div>
+
+<h2>Evidence by segment</h2>
+<p class="note">Each line is one candidate's evidence as cases accumulate, in log10 of the e-value.
+Crossing a dashed line settles the arm, and the run stops paying for it. Looking after every batch
+does not weaken the result. Final verdicts apply e-BH across all arms, so a line can end just short of
+the dashed line and still be proven.</p>
+
+<section class="segment">
+  <div class="head"><h3>classify</h3>
+  <span class="route">15% of traffic · Route to <code>z-ai/glm-4.7-flash</code></span></div>
+  <div class="body">
+    <div><svg viewBox="0 0 940 200" role="img" aria-label="Evidence for each candidate as cases accumulate"><line x1="20" x2="928" y1="32.7" y2="32.7" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="27.7">proven</text><line x1="20" x2="928" y1="157.3" y2="157.3" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="170.3">rejected</text><line x1="20" x2="928" y1="95.0" y2="95.0" stroke="var(--line)"/><text x="14" y="99.0" text-anchor="end">0</text><text x="20" y="194">0</text><text x="928" y="194" text-anchor="end">115 cases</text><polyline points="20.0,95.0 27.9,94.6 35.8,93.9 43.7,92.9 51.6,91.9 59.5,90.9 67.4,89.9 75.3,89.0 83.2,88.0 91.1,87.0 99.0,86.0 106.9,85.0 114.7,84.0 122.6,83.1 130.5,82.1 138.4,81.1 146.3,80.1 154.2,79.1 162.1,78.1 170.0,77.2 177.9,76.2 185.8,75.2 193.7,74.2 201.6,73.2 209.5,72.2 217.4,71.3 225.3,70.3 233.2,69.3 241.1,68.3 249.0,67.3 256.9,66.3 264.8,65.4 272.7,64.4 280.6,63.4 288.5,62.4 296.3,61.4 304.2,60.4 312.1,59.5 320.0,58.5 327.9,57.5 335.8,56.5 343.7,55.5 351.6,54.5 359.5,53.6 367.4,52.6 375.3,51.6 383.2,50.6 391.1,49.6 399.0,48.6 406.9,47.7 414.8,46.7 422.7,45.7 430.6,44.7 438.5,43.7 446.4,42.7 454.3,41.8 462.2,40.8 470.1,39.8 477.9,38.8 485.8,37.8 493.7,36.8 501.6,35.9 509.5,34.9 517.4,33.9 525.3,32.9 533.2,31.9" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="533.2" cy="31.9" r="3.5" fill="var(--s1)"/><polyline points="20.0,95.0 27.9,94.6 35.8,93.9 43.7,92.9 51.6,91.9 59.5,90.9 67.4,89.9 75.3,89.0 83.2,88.0 91.1,87.0 99.0,86.0 106.9,85.0 114.7,84.0 122.6,83.1 130.5,82.1 138.4,81.1 146.3,80.1 154.2,79.1 162.1,78.1 170.0,77.2 177.9,76.2 185.8,75.2 193.7,74.2 201.6,73.2 209.5,72.2 217.4,71.3 225.3,70.3 233.2,69.3 241.1,68.3 249.0,67.3 256.9,66.3 264.8,65.4 272.7,64.4 280.6,63.4 288.5,62.4 296.3,61.4 304.2,60.4 312.1,59.5 320.0,58.5 327.9,57.5 335.8,56.5 343.7,55.5 351.6,54.5 359.5,53.6 367.4,52.6 375.3,51.6 383.2,50.6 391.1,49.6 399.0,48.6 406.9,47.7 414.8,46.7 422.7,45.7 430.6,44.7 438.5,43.7 446.4,42.7 454.3,41.8 462.2,40.8 470.1,39.8 477.9,38.8 485.8,37.8 493.7,36.8 501.6,35.9 509.5,34.9 517.4,33.9 525.3,32.9 533.2,31.9" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="533.2" cy="31.9" r="3.5" fill="var(--s2)"/><polyline points="20.0,95.0 27.9,94.6 35.8,93.9 43.7,92.9 51.6,91.9 59.5,90.9 67.4,89.9 75.3,89.0 83.2,88.0 91.1,87.0 99.0,86.0 106.9,85.0 114.7,84.0 122.6,83.1 130.5,82.1 138.4,81.1 146.3,80.1 154.2,79.1 162.1,78.1 170.0,77.2 177.9,76.2 185.8,75.2 193.7,74.2 201.6,73.2 209.5,72.2 217.4,71.3 225.3,70.3 233.2,69.3 241.1,68.3 249.0,67.3 256.9,66.3 264.8,65.4 272.7,64.4 280.6,63.4 288.5,62.4 296.3,61.4 304.2,60.4 312.1,59.5 320.0,58.5 327.9,57.5 335.8,56.5 343.7,55.5 351.6,54.5 359.5,53.6 367.4,52.6 375.3,51.6 383.2,50.6 391.1,49.6 399.0,48.6 406.9,47.7 414.8,46.7 422.7,45.7 430.6,44.7 438.5,43.7 446.4,42.7 454.3,41.8 462.2,40.8 470.1,39.8 477.9,38.8 485.8,37.8 493.7,36.8 501.6,60.6 509.5,59.6 517.4,58.6 525.3,57.7 533.2,56.7 541.1,55.7 549.0,54.7 556.9,53.7 564.8,52.7 572.7,51.8 580.6,50.8 588.5,49.8 596.4,48.8 604.3,47.8 612.2,46.8 620.1,45.9 628.0,44.9 635.9,43.9 643.8,42.9 651.7,41.9 659.5,40.9 667.4,40.0 675.3,39.0 683.2,38.0 691.1,37.0 699.0,36.0 706.9,35.0 714.8,34.1 722.7,57.8 730.6,56.8 738.5,55.8 746.4,54.9 754.3,53.9 762.2,52.9 770.1,51.9 778.0,50.9 785.9,49.9 793.8,49.0 801.7,48.0 809.6,47.0 817.5,46.0 825.4,45.0 833.3,44.0 841.1,43.1 849.0,42.1 856.9,41.1 864.8,40.1 872.7,39.1 880.6,38.1 888.5,37.2 896.4,36.2 904.3,35.2 912.2,34.2 920.1,33.2 928.0,32.2" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="32.2" r="3.5" fill="var(--s3)"/></svg></div>
+    <div class="scroll"><table>
+      <tr><th>Model</th><th>Verdict</th><th>Quality</th><th>vs incumbent</th><th>Cases</th><th>Per 1k req</th><th>p95</th></tr>
+      <tr><td>xai/grok-4.7 <span class="route">incumbent</span></td><td></td><td class="num">100.0%</td><td class="num">baseline</td><td></td><td class="num">$0.845</td><td class="num">4,373 ms</td></tr><tr><td><span class="dot" style="background:var(--s1)"></span>openai/gpt-oss-120b</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">100.0%</td><td class="num">+0.0 pts</td><td class="num">65</td><td class="num">$0.017</td><td class="num">6,155 ms</td></tr><tr><td><span class="dot" style="background:var(--s2)"></span>deepseek/deepseek-v4-flash</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">100.0%</td><td class="num">+0.0 pts</td><td class="num">65</td><td class="num">$0.008</td><td class="num">5,029 ms</td></tr><tr><td><span class="dot" style="background:var(--s3)"></span>z-ai/glm-4.7-flash</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">98.3%</td><td class="num">-1.7 pts</td><td class="num">115</td><td class="num">$0.007</td><td class="num">2,395 ms</td></tr>
+    </table></div>
+  </div>
+</section>
+<section class="segment">
+  <div class="head"><h3>code</h3>
+  <span class="route">10% of traffic · Route to <code>deepseek/deepseek-v4-flash</code></span></div>
+  <div class="body">
+    <div><svg viewBox="0 0 940 200" role="img" aria-label="Evidence for each candidate as cases accumulate"><line x1="20" x2="928" y1="32.7" y2="32.7" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="27.7">proven</text><line x1="20" x2="928" y1="157.3" y2="157.3" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="170.3">rejected</text><line x1="20" x2="928" y1="95.0" y2="95.0" stroke="var(--line)"/><text x="14" y="99.0" text-anchor="end">0</text><text x="20" y="194">0</text><text x="928" y="194" text-anchor="end">96 cases</text><polyline points="20.0,95.0 29.5,94.6 38.9,93.9 48.4,92.9 57.8,91.9 67.3,90.9 76.8,89.9 86.2,89.0 95.7,88.0 105.1,87.0 114.6,86.0 124.0,85.0 133.5,84.0 143.0,83.1 152.4,82.1 161.9,81.1 171.3,80.1 180.8,79.1 190.2,78.1 199.7,77.2 209.2,76.2 218.6,75.2 228.1,74.2 237.5,73.2 247.0,72.2 256.5,71.3 265.9,70.3 275.4,69.3 284.8,68.3 294.3,67.3 303.8,66.3 313.2,65.4 322.7,64.4 332.1,63.4 341.6,62.4 351.0,61.4 360.5,60.4 370.0,59.5 379.4,58.5 388.9,57.5 398.3,56.5 407.8,55.5 417.2,54.5 426.7,53.6 436.2,52.6 445.6,51.6 455.1,50.6 464.5,49.6 474.0,48.6 483.5,47.7 492.9,46.7 502.4,45.7 511.8,44.7 521.3,43.7 530.8,42.7 540.2,41.8 549.7,40.8 559.1,39.8 568.6,38.8 578.0,37.8 587.5,36.8 597.0,35.9 606.4,34.9 615.9,33.9 625.3,32.9 634.8,31.9" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="634.8" cy="31.9" r="3.5" fill="var(--s1)"/><polyline points="20.0,95.0 29.5,94.6 38.9,95.0 48.4,95.0 57.8,95.0 67.3,95.0 76.8,95.0 86.2,95.0 95.7,95.0 105.1,95.0 114.6,95.0 124.0,95.0 133.5,95.0 143.0,95.0 152.4,95.0 161.9,95.0 171.3,95.0 180.8,95.0 190.2,95.0 199.7,95.0 209.2,95.0 218.6,95.0 228.1,95.0 237.5,95.0 247.0,95.0 256.5,95.0 265.9,95.0 275.4,94.7 284.8,93.7 294.3,92.7 303.8,91.8 313.2,90.8 322.7,89.8 332.1,88.8 341.6,87.8 351.0,86.8 360.5,85.9 370.0,84.9 379.4,83.9 388.9,82.9 398.3,81.9 407.8,80.9 417.2,80.0 426.7,79.0 436.2,78.0 445.6,77.0 455.1,76.0 464.5,75.0 474.0,74.1 483.5,73.1 492.9,72.1 502.4,71.1 511.8,94.9 521.3,93.9 530.8,92.9 540.2,91.9 549.7,90.9 559.1,89.9 568.6,89.0 578.0,88.0 587.5,87.0 597.0,86.0 606.4,85.0 615.9,84.0 625.3,83.1 634.8,82.1 644.2,81.1 653.7,80.1 663.2,79.1 672.6,78.1 682.1,77.2 691.5,76.2 701.0,75.2 710.5,74.2 719.9,73.2 729.4,72.3 738.8,71.3 748.3,70.3 757.8,69.3 767.2,68.3 776.7,67.3 786.1,66.4 795.6,65.4 805.0,64.4 814.5,63.4 824.0,62.4 833.4,61.4 842.9,60.5 852.3,59.5 861.8,58.5 871.2,57.5 880.7,56.5 890.2,55.5 899.6,54.6 909.1,53.6 918.5,52.6 928.0,51.6" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="51.6" r="3.5" fill="var(--s2)"/><polyline points="20.0,95.0 29.5,94.6 38.9,93.9 48.4,92.9 57.8,91.9 67.3,95.0 76.8,95.0 86.2,95.0 95.7,95.0 105.1,95.0 114.6,95.0 124.0,95.0 133.5,95.0 143.0,95.0 152.4,95.0 161.9,95.0 171.3,95.0 180.8,95.0 190.2,95.0 199.7,95.0 209.2,95.0 218.6,95.0 228.1,95.0 237.5,95.0 247.0,95.0 256.5,95.0 265.9,95.0 275.4,95.0 284.8,95.0 294.3,95.0 303.8,95.0 313.2,95.0 322.7,95.0 332.1,95.0 341.6,95.0 351.0,95.0 360.5,95.0 370.0,94.6 379.4,93.6 388.9,92.6 398.3,91.6 407.8,90.7 417.2,89.7 426.7,88.7 436.2,87.7 445.6,86.7 455.1,85.7 464.5,84.8 474.0,83.8 483.5,82.8 492.9,81.8 502.4,80.8 511.8,79.8 521.3,78.9 530.8,77.9 540.2,76.9 549.7,75.9 559.1,74.9 568.6,73.9 578.0,73.0 587.5,72.0 597.0,71.0 606.4,70.0 615.9,69.0 625.3,68.0 634.8,67.1 644.2,66.1 653.7,65.1 663.2,64.1 672.6,63.1 682.1,62.1 691.5,61.2 701.0,60.2 710.5,59.2 719.9,58.2 729.4,57.2 738.8,56.2 748.3,55.3 757.8,54.3 767.2,53.3 776.7,52.3 786.1,51.3 795.6,50.3 805.0,49.4 814.5,48.4 824.0,47.4 833.4,46.4 842.9,45.4 852.3,44.5 861.8,43.5 871.2,42.5 880.7,41.5 890.2,40.5 899.6,39.5 909.1,38.6 918.5,37.6 928.0,36.6" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="36.6" r="3.5" fill="var(--s3)"/></svg></div>
+    <div class="scroll"><table>
+      <tr><th>Model</th><th>Verdict</th><th>Quality</th><th>vs incumbent</th><th>Cases</th><th>Per 1k req</th><th>p95</th></tr>
+      <tr><td>xai/grok-4.7 <span class="route">incumbent</span></td><td></td><td class="num">100.0%</td><td class="num">baseline</td><td></td><td class="num">$1.940</td><td class="num">9,442 ms</td></tr><tr><td><span class="dot" style="background:var(--s1)"></span>openai/gpt-oss-120b</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">100.0%</td><td class="num">+0.0 pts</td><td class="num">65</td><td class="num">$0.050</td><td class="num">12,496 ms</td></tr><tr><td><span class="dot" style="background:var(--s2)"></span>deepseek/deepseek-v4-flash</td><td><span class="tag proven" title="workload exhausted">proven</span></td><td class="num">97.9%</td><td class="num">-2.1 pts</td><td class="num">96</td><td class="num">$0.016</td><td class="num">4,025 ms</td></tr><tr><td><span class="dot" style="background:var(--s3)"></span>z-ai/glm-4.7-flash</td><td><span class="tag proven" title="workload exhausted">proven</span></td><td class="num">99.0%</td><td class="num">-1.0 pts</td><td class="num">96</td><td class="num">$0.050</td><td class="num">3,070 ms</td></tr>
+    </table></div>
+  </div>
+</section>
+<section class="segment">
+  <div class="head"><h3>extract</h3>
+  <span class="route">20% of traffic · Route to <code>deepseek/deepseek-v4-flash</code></span></div>
+  <div class="body">
+    <div><svg viewBox="0 0 940 200" role="img" aria-label="Evidence for each candidate as cases accumulate"><line x1="20" x2="928" y1="32.7" y2="32.7" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="27.7">proven</text><line x1="20" x2="928" y1="157.3" y2="157.3" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="170.3">rejected</text><line x1="20" x2="928" y1="95.0" y2="95.0" stroke="var(--line)"/><text x="14" y="99.0" text-anchor="end">0</text><text x="20" y="194">0</text><text x="928" y="194" text-anchor="end">65 cases</text><polyline points="20.0,95.0 34.0,94.6 47.9,93.9 61.9,92.9 75.9,91.9 89.8,90.9 103.8,89.9 117.8,89.0 131.8,88.0 145.7,87.0 159.7,86.0 173.7,85.0 187.6,84.0 201.6,83.1 215.6,82.1 229.5,81.1 243.5,80.1 257.5,79.1 271.4,78.1 285.4,77.2 299.4,76.2 313.4,75.2 327.3,74.2 341.3,73.2 355.3,72.2 369.2,71.3 383.2,70.3 397.2,69.3 411.1,68.3 425.1,67.3 439.1,66.3 453.0,65.4 467.0,64.4 481.0,63.4 495.0,62.4 508.9,61.4 522.9,60.4 536.9,59.5 550.8,58.5 564.8,57.5 578.8,56.5 592.7,55.5 606.7,54.5 620.7,53.6 634.6,52.6 648.6,51.6 662.6,50.6 676.6,49.6 690.5,48.6 704.5,47.7 718.5,46.7 732.4,45.7 746.4,44.7 760.4,43.7 774.3,42.7 788.3,41.8 802.3,40.8 816.2,39.8 830.2,38.8 844.2,37.8 858.2,36.8 872.1,35.9 886.1,34.9 900.1,33.9 914.0,32.9 928.0,31.9" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="31.9" r="3.5" fill="var(--s1)"/><polyline points="20.0,95.0 34.0,94.6 47.9,93.9 61.9,92.9 75.9,91.9 89.8,90.9 103.8,89.9 117.8,89.0 131.8,88.0 145.7,87.0 159.7,86.0 173.7,85.0 187.6,84.0 201.6,83.1 215.6,82.1 229.5,81.1 243.5,80.1 257.5,79.1 271.4,78.1 285.4,77.2 299.4,76.2 313.4,75.2 327.3,74.2 341.3,73.2 355.3,72.2 369.2,71.3 383.2,70.3 397.2,69.3 411.1,68.3 425.1,67.3 439.1,66.3 453.0,65.4 467.0,64.4 481.0,63.4 495.0,62.4 508.9,61.4 522.9,60.4 536.9,59.5 550.8,58.5 564.8,57.5 578.8,56.5 592.7,55.5 606.7,54.5 620.7,53.6 634.6,52.6 648.6,51.6 662.6,50.6 676.6,49.6 690.5,48.6 704.5,47.7 718.5,46.7 732.4,45.7 746.4,44.7 760.4,43.7 774.3,42.7 788.3,41.8 802.3,40.8 816.2,39.8 830.2,38.8 844.2,37.8 858.2,36.8 872.1,35.9 886.1,34.9 900.1,33.9 914.0,32.9 928.0,31.9" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="31.9" r="3.5" fill="var(--s2)"/><polyline points="20.0,95.0 34.0,94.6 47.9,93.9 61.9,92.9 75.9,91.9 89.8,90.9 103.8,89.9 117.8,89.0 131.8,88.0 145.7,87.0 159.7,86.0 173.7,85.0 187.6,84.0 201.6,83.1 215.6,82.1 229.5,81.1 243.5,80.1 257.5,79.1 271.4,78.1 285.4,77.2 299.4,76.2 313.4,75.2 327.3,74.2 341.3,73.2 355.3,72.2 369.2,71.3 383.2,70.3 397.2,69.3 411.1,68.3 425.1,67.3 439.1,66.3 453.0,65.4 467.0,64.4 481.0,63.4 495.0,62.4 508.9,61.4 522.9,60.4 536.9,59.5 550.8,58.5 564.8,57.5 578.8,56.5 592.7,55.5 606.7,54.5 620.7,53.6 634.6,52.6 648.6,51.6 662.6,50.6 676.6,49.6 690.5,48.6 704.5,47.7 718.5,46.7 732.4,45.7 746.4,44.7 760.4,43.7 774.3,42.7 788.3,41.8 802.3,40.8 816.2,39.8 830.2,38.8 844.2,37.8 858.2,36.8 872.1,35.9 886.1,34.9 900.1,33.9 914.0,32.9 928.0,31.9" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="31.9" r="3.5" fill="var(--s3)"/></svg></div>
+    <div class="scroll"><table>
+      <tr><th>Model</th><th>Verdict</th><th>Quality</th><th>vs incumbent</th><th>Cases</th><th>Per 1k req</th><th>p95</th></tr>
+      <tr><td>xai/grok-4.7 <span class="route">incumbent</span></td><td></td><td class="num">100.0%</td><td class="num">baseline</td><td></td><td class="num">$1.013</td><td class="num">4,419 ms</td></tr><tr><td><span class="dot" style="background:var(--s1)"></span>openai/gpt-oss-120b</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">100.0%</td><td class="num">+0.0 pts</td><td class="num">65</td><td class="num">$0.032</td><td class="num">7,591 ms</td></tr><tr><td><span class="dot" style="background:var(--s2)"></span>deepseek/deepseek-v4-flash</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">100.0%</td><td class="num">+0.0 pts</td><td class="num">65</td><td class="num">$0.016</td><td class="num">3,737 ms</td></tr><tr><td><span class="dot" style="background:var(--s3)"></span>z-ai/glm-4.7-flash</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">100.0%</td><td class="num">+0.0 pts</td><td class="num">65</td><td class="num">$0.028</td><td class="num">2,229 ms</td></tr>
+    </table></div>
+  </div>
+</section>
+<section class="segment">
+  <div class="head"><h3>hard-extract</h3>
+  <span class="route">12% of traffic · Stay on <code>xai/grok-4.7</code></span></div>
+  <div class="body">
+    <div><svg viewBox="0 0 940 200" role="img" aria-label="Evidence for each candidate as cases accumulate"><line x1="20" x2="928" y1="32.7" y2="32.7" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="27.7">proven</text><line x1="20" x2="928" y1="157.3" y2="157.3" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="170.3">rejected</text><line x1="20" x2="928" y1="95.0" y2="95.0" stroke="var(--line)"/><text x="14" y="99.0" text-anchor="end">0</text><text x="20" y="194">0</text><text x="928" y="194" text-anchor="end">120 cases</text><polyline points="20.0,95.0 27.6,94.6 35.1,93.9 42.7,92.9 50.3,91.9 57.8,90.9 65.4,89.9 73.0,89.0 80.5,88.0 88.1,87.0 95.7,86.0 103.2,85.0 110.8,84.0 118.4,83.1 125.9,82.1 133.5,81.1 141.1,80.1 148.6,79.1 156.2,78.1 163.8,77.2 171.3,69.5 178.9,68.5 186.5,67.5 194.0,66.6 201.6,65.6 209.2,64.6 216.7,63.6 224.3,62.6 231.9,61.6 239.4,60.7 247.0,59.7 254.6,58.7 262.1,57.7 269.7,56.7 277.3,55.7 284.8,79.5 292.4,78.5 300.0,77.5 307.5,76.5 315.1,75.6 322.7,74.6 330.2,73.6 337.8,72.6 345.4,71.6 352.9,70.6 360.5,69.7 368.1,68.7 375.6,67.7 383.2,60.0 390.8,83.8 398.3,82.8 405.9,81.8 413.5,80.8 421.0,79.9 428.6,78.9 436.2,77.9 443.7,76.9 451.3,75.9 458.9,74.9 466.4,74.0 474.0,73.0 481.6,72.0 489.1,71.0 496.7,70.0 504.3,69.0 511.8,68.1 519.4,67.1 527.0,66.1 534.5,65.1 542.1,64.1 549.7,63.1 557.2,62.2 564.8,61.2 572.4,60.2 579.9,59.2 587.5,58.2 595.1,57.2 602.6,56.3 610.2,55.3 617.8,54.3 625.3,53.3 632.9,52.3 640.5,51.4 648.0,50.4 655.6,49.4 663.2,48.4 670.7,72.2 678.3,71.2 685.9,70.2 693.4,69.2 701.0,68.2 708.6,67.2 716.1,59.6 723.7,58.6 731.3,57.6 738.8,56.6 746.4,80.4 754.0,79.4 761.5,78.4 769.1,77.4 776.7,76.5 784.2,75.5 791.8,74.5 799.4,73.5 806.9,72.5 814.5,71.5 822.1,95.0 829.6,94.3 837.2,93.4 844.8,92.4 852.3,91.4 859.9,90.4 867.5,89.4 875.0,88.4 882.6,87.5 890.2,86.5 897.7,85.5 905.3,84.5 912.9,83.5 920.4,82.6 928.0,81.6" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="81.6" r="3.5" fill="var(--s1)"/><polyline points="20.0,95.0 27.6,95.0 35.1,100.3 42.7,106.0 50.3,111.7 57.8,117.4 65.4,123.1 73.0,128.8 80.5,134.5 88.1,140.2 95.7,145.8 103.2,151.5 110.8,157.2 118.4,162.9" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="118.4" cy="162.9" r="3.5" fill="var(--s2)"/><polyline points="20.0,95.0 27.6,95.0 35.1,100.3 42.7,106.0 50.3,111.7 57.8,117.4 65.4,123.1 73.0,128.8 80.5,134.5 88.1,140.2 95.7,145.8 103.2,151.5 110.8,157.2 118.4,162.9" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="118.4" cy="162.9" r="3.5" fill="var(--s3)"/></svg></div>
+    <div class="scroll"><table>
+      <tr><th>Model</th><th>Verdict</th><th>Quality</th><th>vs incumbent</th><th>Cases</th><th>Per 1k req</th><th>p95</th></tr>
+      <tr><td>xai/grok-4.7 <span class="route">incumbent</span></td><td></td><td class="num">97.5%</td><td class="num">baseline</td><td></td><td class="num">$11.867</td><td class="num">44,838 ms</td></tr><tr><td><span class="dot" style="background:var(--s1)"></span>openai/gpt-oss-120b</td><td><span class="tag undecided" title="workload exhausted">undecided</span></td><td class="num">95.8%</td><td class="num">-1.7 pts</td><td class="num">120</td><td class="num">$0.248</td><td class="num">47,526 ms</td></tr><tr><td><span class="dot" style="background:var(--s2)"></span>deepseek/deepseek-v4-flash</td><td><span class="tag rejected" title="evidence crossed the early-stop threshold">rejected</span></td><td class="num">0.0%</td><td class="num">-100.0 pts</td><td class="num">13</td><td class="num">$0.030</td><td class="num">3,501 ms</td></tr><tr><td><span class="dot" style="background:var(--s3)"></span>z-ai/glm-4.7-flash</td><td><span class="tag rejected" title="evidence crossed the early-stop threshold">rejected</span></td><td class="num">0.0%</td><td class="num">-100.0 pts</td><td class="num">13</td><td class="num">$0.036</td><td class="num">1,742 ms</td></tr>
+    </table></div>
+  </div>
+</section>
+<section class="segment">
+  <div class="head"><h3>hard-math</h3>
+  <span class="route">12% of traffic · Route to <code>deepseek/deepseek-v4-flash</code></span></div>
+  <div class="body">
+    <div><svg viewBox="0 0 940 200" role="img" aria-label="Evidence for each candidate as cases accumulate"><line x1="20" x2="928" y1="32.7" y2="32.7" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="27.7">proven</text><line x1="20" x2="928" y1="157.3" y2="157.3" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="170.3">rejected</text><line x1="20" x2="928" y1="95.0" y2="95.0" stroke="var(--line)"/><text x="14" y="99.0" text-anchor="end">0</text><text x="20" y="194">0</text><text x="928" y="194" text-anchor="end">42 cases</text><polyline points="20.0,95.0 41.6,94.6 63.2,93.9 84.9,92.9 106.5,91.9 128.1,90.9 149.7,89.9 171.3,89.0 193.0,88.0 214.6,87.0 236.2,95.0 257.8,95.0 279.4,95.0 301.0,95.0 322.7,95.0 344.3,95.0 365.9,95.0 387.5,95.0 409.1,95.0 430.8,95.0 452.4,95.0 474.0,95.0 495.6,94.1 517.2,93.2 538.9,92.3 560.5,91.3 582.1,90.4 603.7,95.0 625.3,95.0 647.0,95.0 668.6,95.0 690.2,95.0 711.8,95.0 733.4,95.0 755.0,95.0 776.7,95.0 798.3,95.0 819.9,95.0 841.5,95.0 863.1,94.7 884.8,93.9 906.4,93.0 928.0,92.2" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="92.2" r="3.5" fill="var(--s1)"/><polyline points="20.0,95.0 41.6,94.6 63.2,93.9 84.9,92.9 106.5,91.9 128.1,84.3 149.7,83.3 171.3,82.3 193.0,81.3 214.6,80.3 236.2,95.0 257.8,95.0 279.4,95.0 301.0,95.0 322.7,92.7 344.3,92.0 365.9,85.8 387.5,85.0 409.1,84.2 430.8,83.4 452.4,82.6 474.0,75.8 495.6,75.0 517.2,74.1 538.9,73.3 560.5,72.4 582.1,71.5 603.7,70.6 625.3,63.3 647.0,62.4 668.6,55.1 690.2,54.2 711.8,53.3 733.4,45.9 755.0,45.0 776.7,44.0 798.3,43.1 819.9,42.1 841.5,41.2 863.1,40.2 884.8,39.2 906.4,38.2 928.0,30.6" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="30.6" r="3.5" fill="var(--s2)"/><polyline points="20.0,95.0 41.6,95.0 63.2,95.0 84.9,95.0 106.5,97.7 128.1,96.8 149.7,102.0 171.3,101.2 193.0,106.8 214.6,105.9 236.2,111.6 257.8,110.7 279.4,109.8 301.0,109.0 322.7,108.1 344.3,113.6 365.9,112.8 387.5,111.9 409.1,117.5 430.8,116.6 452.4,115.7 474.0,114.9 495.6,114.0 517.2,119.5 538.9,125.1 560.5,130.8 582.1,129.9 603.7,129.1 625.3,128.2 647.0,127.3 668.6,126.4 690.2,125.5 711.8,131.1 733.4,130.2 755.0,129.4 776.7,128.5 798.3,134.0 819.9,139.7 841.5,138.8 863.1,137.9 884.8,137.0 906.4,136.2 928.0,135.3" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="135.3" r="3.5" fill="var(--s3)"/></svg></div>
+    <div class="scroll"><table>
+      <tr><th>Model</th><th>Verdict</th><th>Quality</th><th>vs incumbent</th><th>Cases</th><th>Per 1k req</th><th>p95</th></tr>
+      <tr><td>xai/grok-4.7 <span class="route">incumbent</span></td><td></td><td class="num">61.9%</td><td class="num">baseline</td><td></td><td class="num">$16.572</td><td class="num">89,040 ms</td></tr><tr><td><span class="dot" style="background:var(--s1)"></span>openai/gpt-oss-120b</td><td><span class="tag dominated" title="a cheaper candidate was already proven">dominated</span></td><td class="num">66.7%</td><td class="num">+4.8 pts</td><td class="num">42</td><td class="num">$0.366</td><td class="num">99,903 ms</td></tr><tr><td><span class="dot" style="background:var(--s2)"></span>deepseek/deepseek-v4-flash</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">81.0%</td><td class="num">+19.0 pts</td><td class="num">42</td><td class="num">$0.094</td><td class="num">21,459 ms</td></tr><tr><td><span class="dot" style="background:var(--s3)"></span>z-ai/glm-4.7-flash</td><td><span class="tag dominated" title="a cheaper candidate was already proven">dominated</span></td><td class="num">31.0%</td><td class="num">-31.0 pts</td><td class="num">42</td><td class="num">$0.224</td><td class="num">9,968 ms</td></tr>
+    </table></div>
+  </div>
+</section>
+<section class="segment">
+  <div class="head"><h3>math</h3>
+  <span class="route">20% of traffic · Route to <code>deepseek/deepseek-v4-flash</code></span></div>
+  <div class="body">
+    <div><svg viewBox="0 0 940 200" role="img" aria-label="Evidence for each candidate as cases accumulate"><line x1="20" x2="928" y1="32.7" y2="32.7" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="27.7">proven</text><line x1="20" x2="928" y1="157.3" y2="157.3" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="170.3">rejected</text><line x1="20" x2="928" y1="95.0" y2="95.0" stroke="var(--line)"/><text x="14" y="99.0" text-anchor="end">0</text><text x="20" y="194">0</text><text x="928" y="194" text-anchor="end">65 cases</text><polyline points="20.0,95.0 34.0,94.6 47.9,93.9 61.9,92.9 75.9,91.9 89.8,90.9 103.8,89.9 117.8,89.0 131.8,88.0 145.7,87.0 159.7,86.0 173.7,85.0 187.6,84.0 201.6,83.1 215.6,82.1 229.5,81.1 243.5,80.1 257.5,79.1 271.4,78.1 285.4,77.2 299.4,76.2 313.4,75.2 327.3,74.2 341.3,73.2 355.3,72.2 369.2,71.3 383.2,70.3 397.2,69.3 411.1,68.3 425.1,67.3 439.1,66.3 453.0,65.4 467.0,64.4 481.0,63.4 495.0,62.4 508.9,61.4 522.9,60.4 536.9,59.5 550.8,58.5 564.8,57.5 578.8,56.5 592.7,55.5 606.7,54.5 620.7,53.6 634.6,52.6 648.6,51.6 662.6,50.6 676.6,49.6 690.5,48.6 704.5,47.7 718.5,46.7 732.4,45.7 746.4,44.7 760.4,43.7 774.3,42.7 788.3,41.8 802.3,40.8 816.2,39.8 830.2,38.8 844.2,37.8 858.2,36.8 872.1,35.9 886.1,34.9 900.1,33.9 914.0,32.9 928.0,31.9" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="31.9" r="3.5" fill="var(--s1)"/><polyline points="20.0,95.0 34.0,94.6 47.9,93.9 61.9,92.9 75.9,91.9 89.8,90.9 103.8,89.9 117.8,89.0 131.8,88.0 145.7,87.0 159.7,86.0 173.7,85.0 187.6,84.0 201.6,83.1 215.6,82.1 229.5,81.1 243.5,80.1 257.5,79.1 271.4,78.1 285.4,77.2 299.4,76.2 313.4,75.2 327.3,74.2 341.3,73.2 355.3,72.2 369.2,71.3 383.2,70.3 397.2,69.3 411.1,68.3 425.1,67.3 439.1,66.3 453.0,65.4 467.0,64.4 481.0,63.4 495.0,62.4 508.9,61.4 522.9,60.4 536.9,59.5 550.8,58.5 564.8,57.5 578.8,56.5 592.7,55.5 606.7,54.5 620.7,53.6 634.6,52.6 648.6,51.6 662.6,50.6 676.6,49.6 690.5,48.6 704.5,47.7 718.5,46.7 732.4,45.7 746.4,44.7 760.4,43.7 774.3,42.7 788.3,41.8 802.3,40.8 816.2,39.8 830.2,38.8 844.2,37.8 858.2,36.8 872.1,35.9 886.1,34.9 900.1,33.9 914.0,32.9 928.0,31.9" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="31.9" r="3.5" fill="var(--s2)"/><polyline points="20.0,95.0 34.0,94.6 47.9,93.9 61.9,92.9 75.9,91.9 89.8,90.9 103.8,89.9 117.8,89.0 131.8,88.0 145.7,87.0 159.7,86.0 173.7,85.0 187.6,84.0 201.6,83.1 215.6,82.1 229.5,81.1 243.5,80.1 257.5,79.1 271.4,78.1 285.4,77.2 299.4,76.2 313.4,75.2 327.3,74.2 341.3,73.2 355.3,72.2 369.2,71.3 383.2,70.3 397.2,69.3 411.1,68.3 425.1,67.3 439.1,66.3 453.0,65.4 467.0,64.4 481.0,63.4 495.0,62.4 508.9,61.4 522.9,60.4 536.9,59.5 550.8,58.5 564.8,57.5 578.8,56.5 592.7,55.5 606.7,54.5 620.7,53.6 634.6,52.6 648.6,51.6 662.6,50.6 676.6,49.6 690.5,48.6 704.5,47.7 718.5,46.7 732.4,70.4 746.4,69.5 760.4,68.5 774.3,67.5 788.3,66.5 802.3,65.5 816.2,64.5 830.2,63.6 844.2,62.6 858.2,61.6 872.1,60.6 886.1,59.6 900.1,58.6 914.0,57.7 928.0,56.7" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="56.7" r="3.5" fill="var(--s3)"/></svg></div>
+    <div class="scroll"><table>
+      <tr><th>Model</th><th>Verdict</th><th>Quality</th><th>vs incumbent</th><th>Cases</th><th>Per 1k req</th><th>p95</th></tr>
+      <tr><td>xai/grok-4.7 <span class="route">incumbent</span></td><td></td><td class="num">100.0%</td><td class="num">baseline</td><td></td><td class="num">$3.490</td><td class="num">21,407 ms</td></tr><tr><td><span class="dot" style="background:var(--s1)"></span>openai/gpt-oss-120b</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">100.0%</td><td class="num">+0.0 pts</td><td class="num">65</td><td class="num">$0.054</td><td class="num">19,691 ms</td></tr><tr><td><span class="dot" style="background:var(--s2)"></span>deepseek/deepseek-v4-flash</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">100.0%</td><td class="num">+0.0 pts</td><td class="num">65</td><td class="num">$0.021</td><td class="num">4,462 ms</td></tr><tr><td><span class="dot" style="background:var(--s3)"></span>z-ai/glm-4.7-flash</td><td><span class="tag proven" title="a cheaper candidate was already proven">proven</span></td><td class="num">98.5%</td><td class="num">-1.5 pts</td><td class="num">65</td><td class="num">$0.056</td><td class="num">3,515 ms</td></tr>
+    </table></div>
+  </div>
+</section>
+<section class="segment">
+  <div class="head"><h3>rewrite</h3>
+  <span class="route">10% of traffic · Route to <code>deepseek/deepseek-v4-flash</code></span></div>
+  <div class="body">
+    <div><svg viewBox="0 0 940 200" role="img" aria-label="Evidence for each candidate as cases accumulate"><line x1="20" x2="928" y1="32.7" y2="32.7" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="27.7">proven</text><line x1="20" x2="928" y1="157.3" y2="157.3" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="20" y="170.3">rejected</text><line x1="20" x2="928" y1="95.0" y2="95.0" stroke="var(--line)"/><text x="14" y="99.0" text-anchor="end">0</text><text x="20" y="194">0</text><text x="928" y="194" text-anchor="end">100 cases</text><polyline points="20.0,95.0 29.1,94.6 38.2,95.0 47.2,95.0 56.3,95.0 65.4,95.0 74.5,95.0 83.6,95.1 92.6,95.0 101.7,98.7 110.8,97.9 119.9,97.2 129.0,96.5 138.0,95.8 147.1,95.2 156.2,95.0 165.3,95.0 174.4,95.0 183.4,95.0 192.5,95.0 201.6,95.0 210.7,95.0 219.8,95.0 228.8,95.0 237.9,95.0 247.0,95.0 256.1,95.0 265.2,95.0 274.2,95.0 283.3,95.0 292.4,95.0 301.5,95.0 310.6,95.0 319.6,95.0 328.7,95.0 337.8,95.0 346.9,95.0 356.0,95.0 365.0,95.0 374.1,95.0 383.2,95.0 392.3,95.0 401.4,95.0 410.4,95.0 419.5,95.0 428.6,95.0 437.7,95.0 446.8,95.0 455.8,95.0 464.9,95.0 474.0,95.0 483.1,95.0 492.2,95.0 501.2,95.0 510.3,95.0 519.4,95.0 528.5,95.0 537.6,95.0 546.6,95.0 555.7,95.0 564.8,95.0 573.9,95.0 583.0,95.0 592.0,95.0 601.1,95.0 610.2,95.0" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="610.2" cy="95.0" r="3.5" fill="var(--s1)"/><polyline points="20.0,95.0 29.1,94.6 38.2,93.9 47.2,92.9 56.3,91.9 65.4,90.9 74.5,89.9 83.6,89.0 92.6,88.0 101.7,87.0 110.8,86.0 119.9,85.0 129.0,84.0 138.0,83.1 147.1,82.1 156.2,81.1 165.3,80.1 174.4,79.1 183.4,78.1 192.5,77.2 201.6,76.2 210.7,75.2 219.8,74.2 228.8,73.2 237.9,72.2 247.0,71.3 256.1,70.3 265.2,69.3 274.2,68.3 283.3,67.3 292.4,66.3 301.5,65.4 310.6,64.4 319.6,63.4 328.7,62.4 337.8,61.4 346.9,60.4 356.0,59.5 365.0,58.5 374.1,57.5 383.2,56.5 392.3,55.5 401.4,54.5 410.4,53.6 419.5,52.6 428.6,51.6 437.7,50.6 446.8,49.6 455.8,48.6 464.9,47.7 474.0,46.7 483.1,45.7 492.2,44.7 501.2,43.7 510.3,42.7 519.4,41.8 528.5,40.8 537.6,39.8 546.6,38.8 555.7,37.8 564.8,36.8 573.9,35.9 583.0,34.9 592.0,33.9 601.1,32.9 610.2,31.9" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="610.2" cy="31.9" r="3.5" fill="var(--s2)"/><polyline points="20.0,95.0 29.1,94.6 38.2,95.0 47.2,95.0 56.3,95.0 65.4,97.3 74.5,96.5 83.6,95.8 92.6,95.1 101.7,95.0 110.8,95.0 119.9,95.0 129.0,95.0 138.0,95.9 147.1,100.2 156.2,99.4 165.3,98.7 174.4,98.0 183.4,97.4 192.5,96.8 201.6,96.2 210.7,95.7 219.8,95.1 228.8,95.0 237.9,95.0 247.0,95.0 256.1,95.0 265.2,95.0 274.2,95.0 283.3,95.0 292.4,95.0 301.5,95.0 310.6,95.0 319.6,95.0 328.7,95.0 337.8,95.0 346.9,95.0 356.0,95.0 365.0,95.0 374.1,95.0 383.2,96.5 392.3,96.0 401.4,95.5 410.4,95.0 419.5,95.0 428.6,95.0 437.7,95.0 446.8,96.7 455.8,96.2 464.9,95.8 474.0,95.3 483.1,95.0 492.2,95.0 501.2,95.0 510.3,97.0 519.4,96.6 528.5,96.1 537.6,95.7 546.6,95.3 555.7,95.0 564.8,97.8 573.9,97.4 583.0,96.9 592.0,96.5 601.1,96.1 610.2,95.6 619.3,95.2 628.4,95.0 637.4,95.0 646.5,95.0 655.6,95.0 664.7,95.0 673.8,95.0 682.8,95.0 691.9,95.0 701.0,95.0 710.1,95.0 719.2,95.0 728.2,95.0 737.3,95.0 746.4,95.0 755.5,95.0 764.6,95.0 773.6,95.0 782.7,95.0 791.8,95.0 800.9,95.0 810.0,95.0 819.0,95.0 828.1,95.0 837.2,95.0 846.3,95.0 855.4,95.0 864.4,95.0 873.5,95.0 882.6,95.0 891.7,95.0 900.8,95.0 909.8,95.0 918.9,95.0 928.0,95.0" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="928.0" cy="95.0" r="3.5" fill="var(--s3)"/></svg></div>
+    <div class="scroll"><table>
+      <tr><th>Model</th><th>Verdict</th><th>Quality</th><th>vs incumbent</th><th>Cases</th><th>Per 1k req</th><th>p95</th></tr>
+      <tr><td>xai/grok-4.7 <span class="route">incumbent</span></td><td></td><td class="num">n/a</td><td class="num">baseline</td><td></td><td class="num">$1.611</td><td class="num">12,491 ms</td></tr><tr><td><span class="dot" style="background:var(--s1)"></span>openai/gpt-oss-120b</td><td><span class="tag dominated" title="a cheaper candidate was already proven">dominated</span></td><td class="num">n/a</td><td class="num">-6.2 pts</td><td class="num">65</td><td class="num">$0.030</td><td class="num">8,407 ms</td></tr><tr><td><span class="dot" style="background:var(--s2)"></span>deepseek/deepseek-v4-flash</td><td><span class="tag proven" title="evidence crossed the early-stop threshold">proven</span></td><td class="num">n/a</td><td class="num">+0.0 pts</td><td class="num">65</td><td class="num">$0.016</td><td class="num">4,179 ms</td></tr><tr><td><span class="dot" style="background:var(--s3)"></span>z-ai/glm-4.7-flash</td><td><span class="tag undecided" title="workload exhausted">undecided</span></td><td class="num">n/a</td><td class="num">-14.0 pts</td><td class="num">100</td><td class="num">$0.025</td><td class="num">2,353 ms</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<h2>Routing policy</h2>
+<p class="note">Callers send <code>model: offramp-&lt;segment&gt;</code>. The incumbent stays as the last
+fallback, so an open-weight failure degrades to today's behaviour and does not drop the request.</p>
+<pre># Generated by Offramp. Callers send `model: &lt;policy name&gt;`.
+# Evidence: run 20261107-100940-3eabd3, ledger head 9a350b4471ef77a95d423ed3923d0a7a41d387e34c4821c67eff5851a021391b
+# Non-inferiority margin 0.1, false discovery rate 0.05
+routing:
+  policies:
+    offramp-classify:
+      select:
+        - default: z-ai/glm-4.7-flash
+      on_failure:
+        - deepseek/deepseek-v4-flash
+        - openai/gpt-oss-120b
+        - xai/grok-4.7
+    offramp-code:
+      select:
+        - default: deepseek/deepseek-v4-flash
+      on_failure:
+        - z-ai/glm-4.7-flash
+        - openai/gpt-oss-120b
+        - xai/grok-4.7
+    offramp-extract:
+      select:
+        - default: deepseek/deepseek-v4-flash
+      on_failure:
+        - z-ai/glm-4.7-flash
+        - openai/gpt-oss-120b
+        - xai/grok-4.7
+    offramp-hard-extract:
+      select:
+        - default: xai/grok-4.7
+    offramp-hard-math:
+      select:
+        - default: deepseek/deepseek-v4-flash
+      on_failure:
+        - xai/grok-4.7
+    offramp-math:
+      select:
+        - default: deepseek/deepseek-v4-flash
+      on_failure:
+        - openai/gpt-oss-120b
+        - z-ai/glm-4.7-flash
+        - xai/grok-4.7
+    offramp-rewrite:
+      select:
+        - default: deepseek/deepseek-v4-flash
+      on_failure:
+        - xai/grok-4.7
+</pre>
+
+<h2>Receipts</h2>
+<dl>
+  <dt>Ledger head</dt><dd><code>9a350b4471ef77a95d423ed3923d0a7a41d387e34c4821c67eff5851a021391b</code></dd>
+  <dt>Workload SHA-256</dt><dd><code>4bab8479c698eac73b975c3b1b1e4ce33785ee13a3ba4eea70943569d8ecb7cb</code></dd>
+  <dt>Gateway</dt><dd><code>https://api.otari.ai/api/v1</code></dd>
+  <dt>Comparisons</dt><dd class="num">1,394</dd>
+  <dt>Run ended</dt><dd>workload exhausted</dd>
+  <dt>Failed calls / dropped</dt><dd class="num">0 / 0</dd>
+  <dt>Answers cut off at the token limit</dt><dd class="num">openai/gpt-oss-120b: 16, xai/grok-4.7: 21, z-ai/glm-4.7-flash: 1</dd>
+  <dt>Run without temperature 0</dt><dd>xai/grok-4.7</dd>
+  <dt>Sandbox runs (estimated cost)</dt><dd class="num">not recorded in this run</dd>
+  <dt>Calls with no price</dt><dd class="num">0</dd>
+  <dt>Ledger-reported spend</dt><dd class="num">$3.1481</dd>
+  
+</dl>
+<p class="note">Run <code>offramp verify</code> on this folder to recheck the hash chain and recompute every
+verdict from the raw scores. The guarantee covers traffic like this sample. It does not cover later
+drift, so run it again when your workload changes.</p>
+</main></body></html>
