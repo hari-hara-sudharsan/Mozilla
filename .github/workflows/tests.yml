@@ -28,4 +28,6 @@ jobs:
       - name: Offline demo runs
         run: PYTHONPATH=src python -m offramp demo --out /tmp/demo
       - name: Offline guard demo rolls back a regression
-        run: PYTHONPATH=src python -m offramp demo-guard --out /tmp/guard | tail -1 | grep -q "Rolled back: True"
+        run: |
+          PYTHONPATH=src python -m offramp demo-guard --out /tmp/guard > /tmp/guard.log
+          tail -1 /tmp/guard.log | grep -q "Rolled back: True"
