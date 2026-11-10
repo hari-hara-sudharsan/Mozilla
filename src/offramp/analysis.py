@@ -41,6 +41,7 @@ def summarize(path: Path) -> dict:
     by_role: dict[str, float] = defaultdict(float)
     unpriced = failures = drops = 0
     truncated: dict[str, int] = defaultdict(int)
+    screened: dict[str, int] = defaultdict(int)
 
     for entry in ledger_module.read(path):
         event, data = entry["event"], entry["data"]
@@ -66,6 +67,9 @@ def summarize(path: Path) -> dict:
             segment, candidate, role = data["segment"], data.get("candidate"), data["role"]
             if not data.get("ok"):
                 failures += 1
+                continue
+            if role == "screen":
+                screened[candidate] += 1
                 continue
             if data.get("finish_reason") == "length":
                 truncated[data["model"]] += 1
@@ -177,6 +181,7 @@ def summarize(path: Path) -> dict:
             "failed_calls": failures,
             "dropped": drops,
             "truncated_by_model": dict(truncated),
+            "jury_steering_caught": dict(screened),
             "sandbox_runs": end.get("sandbox_runs"),
             "sandbox_estimate_usd": (
                 end["sandbox_runs"] * config.get("sandbox_cost_usd", 0.010)

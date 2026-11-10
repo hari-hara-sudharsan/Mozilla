@@ -37,7 +37,8 @@ class Guard(ThreadingHTTPServer):
 
     def __init__(self, client: Otari, incumbent: str, judges: list[str], out: Path,
                  port: int = 8788, sample: float = 0.2, margin: float = 0.10,
-                 alpha: float = 0.05, seed: int = 7, quiet: bool = False) -> None:
+                 alpha: float = 0.05, seed: int = 7, quiet: bool = False,
+                 end_user: str | None = None) -> None:
         super().__init__(("127.0.0.1", port), _Handler)
         if not judges:
             raise ValueError("the guard needs at least one juror (--judges)")
@@ -51,6 +52,7 @@ class Guard(ThreadingHTTPServer):
         self.alpha = alpha
         self.threshold = math.log(1 / alpha)
         self.quiet = quiet
+        self.end_user = end_user
         self.rng = random.Random(seed)
         self.lock = threading.Lock()
         self.arms: dict[str, Arm] = {}
@@ -108,12 +110,17 @@ class Guard(ThreadingHTTPServer):
 
     def shadow(self, segment: str, body: dict, answer: str, served_model: str) -> None:
         """Compare one routed answer with the incumbent's, off the request path."""
+        steering = graders.steers_jury(answer)
+        if steering:
+            self.record_vote(segment, served_model, -1.0, [], "", steering)
+            return
         try:
             params = {k: v for k, v in body.items() if k not in ("model", "messages", "stream")}
             params.pop("metadata", None)
+            params.pop("user", None)
             incumbent = self.client.chat(self.incumbent, body["messages"], params,
                                          {"offramp_role": "guard_shadow",
-                                          "offramp_segment": segment[:64]})
+                                          "offramp_segment": segment[:64]}, user=self.end_user)
             request = "\n\n".join(str(m.get("content", "")) for m in body["messages"])
             judges = graders.independent_judges(self.judges, self.incumbent, served_model)
             votes = []
@@ -124,7 +131,7 @@ class Guard(ThreadingHTTPServer):
                 first, second = pair if first_is_candidate else pair[::-1]
                 reply = self.client.chat(judge, graders.judge_prompt(request, first, second),
                                          {"temperature": 0, "max_tokens": 1024},
-                                         {"offramp_role": "guard_juror"})
+                                         {"offramp_role": "guard_juror"}, user=self.end_user)
                 verdict = graders.parse_verdict(reply.text)
                 if verdict:
                     votes.append(graders.vote_value(verdict, first_is_candidate))
@@ -134,14 +141,18 @@ class Guard(ThreadingHTTPServer):
             return
         if not votes:
             return
-        d = graders.jury_score(votes)
+        self.record_vote(segment, served_model, graders.jury_score(votes), votes,
+                         sha256(request), None)
+
+    def record_vote(self, segment: str, served_model: str, d: float, votes: list[float],
+                    prompt_sha: str, steering: str | None) -> None:
         with self.lock:
             if segment in self.tripped:
                 return
             arm = self.arms[segment]
             arm.update(d)
             self.ledger.append("shadow", segment=segment, served_model=served_model, d=d,
-                               votes=votes, prompt_sha256=sha256(request),
+                               votes=votes, prompt_sha256=prompt_sha, steering=steering,
                                log_evidence=arm.log_e_against)
             evidence = math.exp(arm.log_e_against)
             if arm.log_e_against >= self.threshold:

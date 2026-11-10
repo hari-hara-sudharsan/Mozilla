@@ -66,7 +66,10 @@ def run_data(name: str, label: str, use: list[str], shares: dict) -> dict:
 def main() -> None:
     main_summary = analysis.summarize(ROOT / "evidence" / "live-2" / "ledger.jsonl")
     shares = {k: v["share"] for k, v in main_summary["segments"].items()}
+    jury = json.loads((ROOT / "evidence" / "jury-injection.json").read_text(encoding="utf-8"))
     data = {
+        "jury": {"summary": jury["summary"], "attacks": jury["attacks"],
+                 "spend_usd": jury["spend_usd"], "judges": jury["judges"]},
         "incumbent": main_summary["config"]["incumbent"],
         "candidates": main_summary["config"]["candidates"],
         "order": [s for _, _, use in RUNS for s in use],

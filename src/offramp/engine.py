@@ -37,6 +37,11 @@ class Config:
     batch: int = 4
     workers: int = 8
     store_text: bool = False
+    # An Otari end user to bill (requires a service key): a gateway-enforced budget
+    # for the whole run, sandbox included, independent of Offramp's own accounting.
+    end_user: str | None = None
+    # An Otari guardrail profile to request on every juror call, in monitor mode.
+    guardrail: str | None = None
 
 
 @dataclass
@@ -68,6 +73,7 @@ class Engine:
     def __init__(self, client: Otari, cases: list[Case], digest: str, config: Config, out: Path):
         self.client = client
         self.config = config
+        client.end_user = config.end_user
         self.digest = digest
         self.out = out
         self.run_id = f"{time.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}"
@@ -93,7 +99,8 @@ class Engine:
         self.stop_at = early_stop_log_threshold(config.alpha, len(self.arms))
 
     def _call(self, role: str, model: str, case: Case, messages: list[dict], params: dict,
-              candidate: str | None = None) -> tuple[Completion | None, dict]:
+              candidate: str | None = None,
+              guardrails: list[dict] | None = None) -> tuple[Completion | None, dict]:
         tags = {
             "offramp_run": self.run_id,
             "offramp_role": role,
@@ -103,7 +110,8 @@ class Engine:
         record: dict = {"role": role, "model": model, "case": case.id, "segment": case.segment,
                         "candidate": candidate}
         try:
-            reply = self.client.chat(model, messages, params, tags, key)
+            reply = self.client.chat(model, messages, params, tags, key,
+                                     user=self.config.end_user, guardrails=guardrails)
         except OtariError as error:
             if error.budget_exhausted:
                 raise BudgetStop(str(error)) from error
@@ -119,6 +127,8 @@ class Engine:
             finish_reason=reply.finish_reason,
             text_sha256=sha256(reply.text),
         )
+        if reply.guardrails:
+            record["guardrails"] = reply.guardrails[:500]
         if self.config.store_text:
             record["text"] = reply.text
         return reply, record
@@ -131,7 +141,16 @@ class Engine:
         if not judges and not self.config.decision_model:
             return None, [], "no judge outside the incumbent's and candidate's model families"
 
+        steering = graders.steers_jury(candidate_text)
+        if steering:
+            # Decided before any juror reads it, so the attempt can't work.
+            return -1.0, [{"role": "screen", "model": "offramp/jury-screen", "case": case.id,
+                           "segment": case.segment, "candidate": candidate, "ok": True,
+                           "cost_usd": 0.0, "steering": steering}], None
+
         request = "\n\n".join(str(message.get("content", "")) for message in case.messages)
+        guardrails = ([{"profile": self.config.guardrail, "mode": "monitor"}]
+                      if self.config.guardrail else None)
         votes: list[float] = []
         calls: list[dict] = []
         for index, judge in enumerate(judges):
@@ -140,7 +159,7 @@ class Engine:
             first, second = pair if first_is_candidate else pair[::-1]
             reply, record = self._call(
                 "judge", judge, case, graders.judge_prompt(request, first, second),
-                {"temperature": 0, "max_tokens": 1024}, candidate,
+                {"temperature": 0, "max_tokens": 1024}, candidate, guardrails,
             )
             calls.append(record)
             verdict = graders.parse_verdict(reply.text) if reply else None

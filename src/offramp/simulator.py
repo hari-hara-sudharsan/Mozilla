@@ -82,6 +82,7 @@ class Simulator(ThreadingHTTPServer):
         self.wallet_empty = wallet_empty
         self.spent = 0.0
         self.requests = 0
+        self.users: set[str] = set()
         self.lock = threading.Lock()
 
     @property
@@ -204,6 +205,9 @@ class _Handler(BaseHTTPRequestHandler):
             else:
                 skill = profile["skill"].get(case.segment, 0.5)
                 text = simulated_answer(case, _unit(model, case.id) < skill)
+                text += profile.get("suffix", "")
+        if body.get("user"):
+            sim.users.add(body["user"])
 
         prompt_tokens = sum(len(str(m.get("content"))) for m in messages) // 4 + 1
         completion_tokens = len(text) // 4 + 1

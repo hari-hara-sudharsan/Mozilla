@@ -25,7 +25,8 @@ class OtariError(Exception):
 
     @property
     def budget_exhausted(self) -> bool:
-        return self.code in ("budget_exceeded", "insufficient_funds") or self.status == 402
+        return (self.code in ("budget_exceeded", "insufficient_funds", "user_blocked")
+                or self.status == 402)
 
 
 @dataclass
@@ -38,6 +39,7 @@ class Completion:
     prompt_tokens: int
     completion_tokens: int
     finish_reason: str = ""
+    guardrails: str = ""
 
 
 def load_env(path: Path = Path(".env")) -> None:
@@ -135,10 +137,16 @@ class Otari:
         params: dict | None = None,
         tags: dict | None = None,
         idempotency_key: str | None = None,
+        user: str | None = None,
+        guardrails: list[dict] | None = None,
     ) -> Completion:
         body = {"model": model, "messages": messages, **(params or {})}
         if tags:
             body["metadata"] = tags
+        if user:
+            body["user"] = user  # With a service key, Otari bills this end user's budget.
+        if guardrails:
+            body["guardrails"] = guardrails
         if model in self.refuses_temperature:
             body.pop("temperature", None)
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else {}
@@ -167,13 +175,15 @@ class Otari:
             prompt_tokens=int(usage.get("prompt_tokens") or 0),
             completion_tokens=int(usage.get("completion_tokens") or 0),
             finish_reason=str(choices[0].get("finish_reason") or ""),
+            guardrails=reply_headers.get("otari-guardrails", ""),
         )
 
-    def execute(self, code: str, timeout_seconds: int = 20) -> dict:
+    def execute(self, code: str, timeout_seconds: int = 20, user: str | None = None) -> dict:
         """Run code in Otari's sandbox. Model-written code never runs locally."""
-        reply, _ = self.request(
-            "POST", "/code/execute", {"code": code, "timeout_seconds": timeout_seconds}
-        )
+        body: dict = {"code": code, "timeout_seconds": timeout_seconds}
+        if user:
+            body["user"] = user
+        reply, _ = self.request("POST", "/code/execute", body)
         with self._lock:
             self.sandbox_runs += 1
         return reply

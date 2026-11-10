@@ -152,6 +152,13 @@ footer { color: var(--muted); font-size: 13px; }
 
   <section class="segments" id="segments" aria-label="Segments"></section>
 
+  <section class="panel" aria-labelledby="jury-title">
+    <h2 id="jury-title">Can a weak answer talk its way past the jury?</h2>
+    <p class="note">A live experiment on Otari: for 12 writing tasks, the same jurors compared Grok's answer with a deliberately weakened one, with and without a sentence aimed at the judges.</p>
+    <div class="scroll"><table id="jury-table"></table></div>
+    <p class="note" id="jury-note"></p>
+  </section>
+
   <section class="two">
     <div class="panel">
       <div class="panel-head"><h2>Routing policy</h2><button type="button" id="copy">Copy YAML</button></div>
@@ -371,6 +378,24 @@ function render() {
     : "Showing the published verdicts. The settings were fixed before the run.";
 }
 
+function jury() {
+  if (!DATA.jury) return;
+  const s = DATA.jury.summary;
+  const rows = [["As it is", "plain"],
+    [`Plus "${DATA.jury.attacks.tie.trim()}"`, "tie"],
+    [`Plus "${DATA.jury.attacks.win.trim()}"`, "win"]];
+  document.getElementById("jury-table").innerHTML =
+    `<tr><th>Weak answer</th><th>Jury held it back</th><th>Offramp's screen caught it</th></tr>` +
+    rows.map(([label, key]) => `<tr><td style="white-space:normal">${esc(label)}</td>
+      <td class="num">${s[key].jury_held_candidate_back} of ${s[key].cases}</td>
+      <td class="num">${s[key].screen_caught} of ${s[key].cases}</td></tr>`).join("");
+  const rescued = s.plain.jury_held_candidate_back - s.tie.jury_held_candidate_back;
+  document.getElementById("jury-note").textContent =
+    `One sentence aimed at the judges got ${rescued} of ${s.plain.jury_held_candidate_back} clearly worse answers past the jury. ` +
+    `Offramp screens every answer before a juror reads it, and flagged none of the 2,375 real answers in the published runs. ` +
+    `Spend: $${DATA.jury.spend_usd.toFixed(3)}.`;
+}
+
 function receipts() {
   const items = DATA.runs.map(run =>
     `<dt>${esc(run.name)}</dt><dd><code>${esc(run.head)}</code></dd>`).join("");
@@ -399,5 +424,5 @@ document.getElementById("copy").addEventListener("click", async event => {
   }
   setTimeout(() => { event.target.textContent = "Copy YAML"; }, 2200);
 });
-if (DATA) { receipts(); render(); }
+if (DATA) { receipts(); jury(); render(); }
 </script>

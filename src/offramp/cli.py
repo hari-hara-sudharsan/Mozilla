@@ -74,6 +74,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         incumbent=args.incumbent, candidates=_split(args.candidates), judges=_split(args.judges),
         decision_model=args.decision_model, budget_usd=args.budget,
         sandbox_cost_usd=args.sandbox_cost, margin=args.margin,
+        end_user=args.end_user, guardrail=args.guardrail,
         alpha=args.alpha, seed=args.seed, batch=args.batch, workers=args.workers,
         store_text=args.store_text,
     )
@@ -279,7 +280,7 @@ def cmd_capture(args: argparse.Namespace) -> int:
 def cmd_guard(args: argparse.Namespace) -> int:
     out = Path(args.out)
     guard = Guard(_client(), args.incumbent, _split(args.judges), out, args.port,
-                  args.sample, args.margin, args.alpha)
+                  args.sample, args.margin, args.alpha, end_user=args.end_user)
     print(f"Guarding offramp-* routes on http://127.0.0.1:{args.port}/api/v1. "
           f"Comparing {args.sample:.0%} of requests with {args.incumbent}.")
     print(f"Status: http://127.0.0.1:{args.port}/offramp/status. Press Ctrl+C to stop.")
@@ -358,6 +359,10 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--batch", type=int, default=4, help="cases per segment between looks")
     run.add_argument("--workers", type=int, default=8)
     run.add_argument("--store-text", action="store_true", help="keep answers in the ledger")
+    run.add_argument("--end-user", help="Otari end user to bill (needs a service key); "
+                     "its budget caps the whole run at the gateway")
+    run.add_argument("--guardrail", help="Otari guardrail profile to request on juror calls, "
+                     "e.g. prompt-injection")
     run.add_argument("--out", required=True)
     run.set_defaults(func=cmd_run)
 
@@ -408,6 +413,8 @@ def build_parser() -> argparse.ArgumentParser:
     guard.add_argument("--alpha", type=float, default=0.05, help="lifetime false alarm rate")
     guard.add_argument("--port", type=int, default=8788)
     guard.add_argument("--out", default="runs/guard")
+    guard.add_argument("--end-user", help="Otari end user that pays for shadow traffic "
+                       "(needs a service key), so monitoring has its own budget")
     guard.set_defaults(func=cmd_guard)
 
     demo_guard = commands.add_parser("demo-guard", help="watch the guard catch a regression offline")
