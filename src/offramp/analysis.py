@@ -179,7 +179,7 @@ def summarize(path: Path) -> dict:
             "truncated_by_model": dict(truncated),
             "sandbox_runs": end.get("sandbox_runs"),
             "sandbox_estimate_usd": (
-                end["sandbox_runs"] * config.get("sandbox_cost_usd", 0.011)
+                end["sandbox_runs"] * config.get("sandbox_cost_usd", 0.010)
                 if end.get("sandbox_runs") is not None else None
             ),
             "models_refusing_temperature": end.get("models_refusing_temperature", []),

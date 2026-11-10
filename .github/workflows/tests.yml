@@ -27,3 +27,5 @@ jobs:
           node explorer/check.mjs
       - name: Offline demo runs
         run: PYTHONPATH=src python -m offramp demo --out /tmp/demo
+      - name: Offline guard demo rolls back a regression
+        run: PYTHONPATH=src python -m offramp demo-guard --out /tmp/guard | tail -1 | grep -q "Rolled back: True"

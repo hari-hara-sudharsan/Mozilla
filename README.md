@@ -79,12 +79,42 @@ Python results to floating-point precision. CI runs that check on every push.
 | `live-3` | $2.61 | Stopped twice, once when the machine ran low on memory and once when the wallet ran out. No verdicts. |
 | `live-4-hard` | $2.00 | **Run of record** for the two hard segments, with a 16,000-token limit. Stopped early by low memory, but its chain verifies and every verdict in it holds, since an e-process may be stopped at any time. |
 
-Sandbox runs report no price. About 1,250 of them appear to have cost about $13.50
-on top of the table above, inferred from the wallet, not confirmed. That is why
+Sandbox runs report no price. About 1,250 of them cost about $13.50 on top of the
+table above, at hosted Otari's $0.01 a run
+([mozilla-ai/otari#2864](https://github.com/mozilla-ai/otari/issues/2864)). That is why
 `--budget` now counts them.
 
 The two runs of record each control the false discovery rate on their own. The
 combined claim spans two runs and two accounts, and has no joint guarantee.
+
+## Keep proving it in production
+
+A route that was safe last month can slip: a provider updates its model, or your
+traffic changes. `offramp guard` keeps testing after deployment:
+
+```bash
+uv run offramp guard --incumbent xai/grok-4.7 \
+  --judges google/gemma-3-27b-it,meta/llama-3.3-70b-instruct --sample 0.2
+# Point your app at http://127.0.0.1:8788/api/v1 and keep sending model: offramp-<segment>
+```
+
+- Requests pass through to your Otari routing policy unchanged, with no added delay.
+- A sample of them is also sent to the incumbent in the background, and independent
+  jurors compare the two answers.
+- Each comparison feeds the same e-process as the offline test, in the other direction.
+  When the evidence of a regression crosses 1/alpha, the guard sends that segment back
+  to the incumbent and records why in a hash-chained ledger.
+- **The chance of ever raising a false alarm stays below alpha, however long it runs.**
+  An ordinary repeated A/B test can't promise that: check it often enough and it will
+  eventually raise a false alarm.
+
+See it catch a regression offline, with no key and no cost:
+
+```bash
+uv run offramp demo-guard
+```
+
+`GET /offramp/status` shows each segment's evidence while the guard runs.
 
 ## What makes it different
 
@@ -132,8 +162,9 @@ is pinned to it.
 | Multiple models, distinct roles | Incumbent, candidates and a cross-family jury each play a separate role. |
 | Routing and fallbacks | The output is `routing.policies` with `on_failure` chains. On hosted Otari, create them on the Routing page, since an API key can't write them. `offramp apply` serves deployments where the caller can. |
 | Code execution | `POST /code/execute` grades generated code in the sandbox. |
+| Live guard | `offramp guard` sits in front of a routing policy, compares a sample of answers with the incumbent in the background, and rolls a segment back on evidence of regression. |
 | Decisions API | `--decision-model` adds a typed `choice` juror through `POST /decisions`, on deployments with a decision provider. Hosted Otari had none configured as of November 7, 2026, so the published run doesn't use it. |
-| Budgets | `--budget` is a hard stop, enforced from `usage.cost_usd`. Offramp stops cleanly on `403 budget_exceeded` and `402 insufficient_funds`. It also reads `GET /key/budget` where a deployment serves it, which hosted Otari did not as of November 6, 2026. |
+| Budgets | `--budget` is a hard stop, enforced from `usage.cost_usd` plus sandbox runs. Offramp stops cleanly on `403 budget_exceeded` and `402 insufficient_funds`, and reads `GET /key/budget` to also respect the key's own spend ceiling. |
 | Exact cost | `usage.cost_usd` feeds the ledger, the cost comparison and the savings projection. |
 | Request tags | Every call carries `metadata` with its run, role and segment, so spend can be grouped by tag in Otari. |
 | Idempotency | Every call has a deterministic `Idempotency-Key`, so a retry after a lost response isn't billed twice. |
@@ -235,9 +266,9 @@ or prompt change can't quietly lose its evidence. It also refuses simulated runs
   dropped, so a handicapped baseline never gives a candidate credit.
 - The ledger is hash-chained, not signed. It proves a run is unchanged only if you
   have published its head.
-- `/code/execute` reports no price, so sandbox cost is an estimate. `--budget` counts
-  each run at `--sandbox-cost`, $0.011 by default, inferred from one live account. Set
-  a spend ceiling in Otari too, and check the dashboard for the true total.
+- `/code/execute` reports no price ([mozilla-ai/otari#2864](https://github.com/mozilla-ai/otari/issues/2864)),
+  so `--budget` counts each sandbox run at `--sandbox-cost`, the hosted rate of $0.01 by
+  default. Set a spend ceiling in Otari too.
 
 ## Development
 

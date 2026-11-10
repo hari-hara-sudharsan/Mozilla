@@ -28,9 +28,9 @@ class Config:
     judges: list[str] = field(default_factory=list)
     decision_model: str | None = None
     budget_usd: float = 2.0
-    # The sandbox route reports no price. Estimated from a live run in which about
-    # 1,270 sandbox runs accounted for about $13.50 that no model call explained.
-    sandbox_cost_usd: float = 0.011
+    # The sandbox route reports no price. Hosted Otari bills $0.01 a run, which
+    # mozilla-ai/otari#2864 shows and our own wallet confirmed.
+    sandbox_cost_usd: float = 0.010
     margin: float = 0.10
     alpha: float = 0.05
     seed: int = 7

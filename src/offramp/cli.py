@@ -7,10 +7,13 @@ import json
 import os
 import sys
 import tempfile
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from . import analysis, graders, ledger, report, simulator, workload
 from .capture import CaptureProxy
+from .guard import Guard
 from .engine import Config, Engine
 from .otari import DEFAULT_BASE_URL, Otari, OtariError, load_env
 
@@ -273,6 +276,69 @@ def cmd_capture(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_guard(args: argparse.Namespace) -> int:
+    out = Path(args.out)
+    guard = Guard(_client(), args.incumbent, _split(args.judges), out, args.port,
+                  args.sample, args.margin, args.alpha)
+    print(f"Guarding offramp-* routes on http://127.0.0.1:{args.port}/api/v1. "
+          f"Comparing {args.sample:.0%} of requests with {args.incumbent}.")
+    print(f"Status: http://127.0.0.1:{args.port}/offramp/status. Press Ctrl+C to stop.")
+    try:
+        guard.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        guard.close()
+    print(f"Ledger: {out / 'guard.jsonl'}")
+    return 0
+
+
+def cmd_demo_guard(args: argparse.Namespace) -> int:
+    """Offline: a healthy route, then a silently worse model, then a rollback."""
+    import urllib.request
+
+    cases = [case for case in workload.load(Path(args.workload))[0]
+             if case.grader["type"] == "jury"]
+    route = {"rate": 0.1, "skill": {case.segment: 0.97 for case in cases}}
+    models = {
+        simulator.DEMO_INCUMBENT: {"rate": 6.0, "skill": {c.segment: 0.97 for c in cases}},
+        "offramp-support": route,
+        **{judge: {"rate": 0.2, "skill": {}} for judge in simulator.DEMO_JUDGES},
+    }
+    server = simulator.Simulator(cases, models).start()
+    client = Otari("simulated-key", server.base_url, backoff=0.01)
+    client.simulated = True
+    out = Path(args.out or tempfile.mkdtemp(prefix="offramp-guard-"))
+    guard = Guard(client, simulator.DEMO_INCUMBENT, simulator.DEMO_JUDGES, out, port=0,
+                  sample=1.0)
+    guard.shadows.shutdown()
+    guard.shadows = ThreadPoolExecutor(max_workers=1)
+    threading.Thread(target=guard.serve_forever, args=(0.01,), daemon=True).start()
+    url = f"http://127.0.0.1:{guard.server_address[1]}/api/v1/chat/completions"
+    print("Offline guard demo: fictional models on a local simulator. No key, no cost.\n")
+    try:
+        for number, case in enumerate(cases[: args.requests], start=1):
+            if number == args.degrade_at:
+                route["skill"] = {case.segment: 0.35 for case in cases}
+                print(f"\n>>> Request {number}: the provider silently ships a worse model.\n")
+            request = urllib.request.Request(
+                url, data=json.dumps({"model": "offramp-support",
+                                      "messages": case.messages}).encode(),
+                headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(request) as response:
+                state = response.headers.get("X-Offramp-Guard")
+            guard.shadows.submit(lambda: None).result()
+            if state == "rolled-back" and number % 5 == 0:
+                print(f"  request {number}: served by {simulator.DEMO_INCUMBENT} (rolled back)")
+    finally:
+        guard.shutdown()
+        guard.close()
+        server.stop()
+    status = guard.status()["segments"].get("support", {})
+    print(f"\nRolled back: {status.get('rolled_back')}. Ledger: {out / 'guard.jsonl'}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="offramp", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -284,7 +350,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--judges", help="comma-separated jury models from other families")
     run.add_argument("--decision-model", help="add a juror through Otari's Decisions API")
     run.add_argument("--budget", type=float, default=2.0, help="USD ceiling for this run")
-    run.add_argument("--sandbox-cost", type=float, default=0.011,
+    run.add_argument("--sandbox-cost", type=float, default=0.010,
                      help="estimated USD per sandbox run, counted against --budget")
     run.add_argument("--margin", type=float, default=0.10, help="largest acceptable quality loss")
     run.add_argument("--alpha", type=float, default=0.05, help="false discovery rate")
@@ -327,12 +393,29 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--candidates", required=True)
     plan.add_argument("--judges")
     plan.add_argument("--output-tokens", type=int, default=300)
-    plan.add_argument("--sandbox-cost", type=float, default=0.011)
+    plan.add_argument("--sandbox-cost", type=float, default=0.010)
     plan.set_defaults(func=cmd_plan)
 
     models = commands.add_parser("models", help="list models this key can use")
     models.add_argument("--grep", default="")
     models.set_defaults(func=cmd_models)
+
+    guard = commands.add_parser("guard", help="keep proving routes in production, roll back on regression")
+    guard.add_argument("--incumbent", required=True)
+    guard.add_argument("--judges", required=True, help="jurors from other model families")
+    guard.add_argument("--sample", type=float, default=0.2, help="share of requests to compare")
+    guard.add_argument("--margin", type=float, default=0.10)
+    guard.add_argument("--alpha", type=float, default=0.05, help="lifetime false alarm rate")
+    guard.add_argument("--port", type=int, default=8788)
+    guard.add_argument("--out", default="runs/guard")
+    guard.set_defaults(func=cmd_guard)
+
+    demo_guard = commands.add_parser("demo-guard", help="watch the guard catch a regression offline")
+    demo_guard.add_argument("--workload", default=str(EXAMPLE_WORKLOAD))
+    demo_guard.add_argument("--requests", type=int, default=90)
+    demo_guard.add_argument("--degrade-at", type=int, default=31)
+    demo_guard.add_argument("--out")
+    demo_guard.set_defaults(func=cmd_demo_guard)
 
     capture = commands.add_parser("capture", help="record real traffic through a local proxy")
     capture.add_argument("--out", default="capture.jsonl")

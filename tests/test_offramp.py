@@ -12,6 +12,8 @@ from unittest import mock
 
 from offramp import analysis, cli, graders, ledger, simulator, workload
 from offramp.capture import CaptureProxy
+from offramp.guard import Guard
+from concurrent.futures import ThreadPoolExecutor
 from offramp.engine import Config, Engine
 from offramp.otari import Otari, OtariError
 from offramp.simulator import Simulator
@@ -91,6 +93,19 @@ class Statistics(unittest.TestCase):
             return rng.choices([-1.0, 0.0, 1.0], [0.03, 0.94, 0.03])[0]
 
         self.assertGreater(self.simulate(draw, trials=300), 0.9)
+
+    def test_the_guard_raises_a_false_alarm_at_most_alpha_of_the_time(self):
+        # A route exactly at the margin: unanimous incumbent preference 10% of the time.
+        rng = random.Random(5)
+        alarms = 0
+        for _ in range(1500):
+            arm = Arm(0.1)
+            for _ in range(400):
+                arm.update(-1.0 if rng.random() < 0.1 else 0.0)
+                if arm.log_e_against >= math.log(1 / 0.05):
+                    alarms += 1
+                    break
+        self.assertLessEqual(alarms / 1500, 0.05)
 
     def test_bad_candidate_is_rejected(self):
         rng = random.Random(3)
@@ -511,6 +526,78 @@ class Capture(Harness):
         self.assertEqual((cases[0].segment, cases[0].grader["type"]), ("support", "jury"))
         self.assertEqual(cases[0].recorded["text"], "simulated reply")
         self.assertEqual(cases[0].params, {"temperature": 0.2})
+
+
+class GuardTests(Harness):
+    def start(self, route_skill, cases, sample=1.0, alpha=0.05):
+        models = {
+            "inc/big": {"rate": 5.0, "skill": {"s": 0.97}},
+            "offramp-s": {"rate": 0.1, "skill": {"s": route_skill}},
+            "judge-a/j": {"rate": 0.1, "skill": {}},
+            "judge-b/j": {"rate": 0.1, "skill": {}},
+        }
+        server = Simulator(cases, models).start()
+        self.addCleanup(server.stop)
+        guard = Guard(Otari("k", server.base_url, backoff=0.0), "inc/big",
+                      ["judge-a/j", "judge-b/j"], self.dir / "guard", port=0,
+                      sample=sample, alpha=alpha, quiet=True)
+        guard.shadows.shutdown()
+        guard.shadows = ThreadPoolExecutor(max_workers=1)
+        threading.Thread(target=guard.serve_forever, args=(0.01,), daemon=True).start()
+        self.addCleanup(guard.close)
+        self.addCleanup(guard.shutdown)
+        return guard, server
+
+    def send(self, guard, case, model="offramp-s"):
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{guard.server_address[1]}/api/v1/chat/completions",
+            data=json.dumps({"model": model, "messages": case.messages}).encode(),
+            headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(request) as response:
+            json.load(response)
+            state = response.headers.get("X-Offramp-Guard")
+        guard.shadows.submit(lambda: None).result()
+        return state
+
+    def test_a_degraded_route_is_rolled_back_to_the_incumbent(self):
+        cases = make_cases(count=120, kind="jury")
+        guard, _ = self.start(0.3, cases)
+        states = [self.send(guard, case) for case in cases]
+        self.assertIn("rolled-back", states)
+        first = states.index("rolled-back")
+        self.assertTrue(all(s == "rolled-back" for s in states[first:]))
+        self.assertLess(first, 60)
+        self.assertTrue(guard.status()["segments"]["s"]["rolled_back"])
+
+    def test_a_healthy_route_is_left_alone(self):
+        cases = make_cases(count=150, kind="jury")
+        guard, _ = self.start(0.97, cases)
+        states = [self.send(guard, case) for case in cases]
+        self.assertEqual(set(states), {"watching"})
+        self.assertFalse(guard.status()["segments"]["s"]["rolled_back"])
+
+    def test_other_models_pass_through_untouched(self):
+        cases = make_cases(count=5, kind="jury")
+        guard, server = self.start(0.3, cases)
+        self.assertEqual(self.send(guard, cases[0], model="inc/big"), "pass-through")
+        self.assertEqual(guard.status()["segments"], {})
+
+    def test_the_guard_ledger_is_a_valid_chain(self):
+        cases = make_cases(count=40, kind="jury")
+        guard, _ = self.start(0.3, cases)
+        for case in cases:
+            self.send(guard, case)
+        guard.shutdown()
+        guard.close()
+        self.assertTrue(ledger.verify_chain(self.dir / "guard" / "guard.jsonl")[0])
+
+    def test_shadowing_respects_the_sample_rate(self):
+        cases = make_cases(count=100, kind="jury")
+        guard, _ = self.start(0.97, cases, sample=0.2)
+        for case in cases:
+            self.send(guard, case)
+        compared = guard.status()["segments"]["s"]["shadow_comparisons"]
+        self.assertTrue(8 <= compared <= 35, compared)
 
 
 class Plan(Harness):
