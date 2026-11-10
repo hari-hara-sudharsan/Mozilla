@@ -1045,6 +1045,7 @@
     "truncated_by_model": {
       "xai/grok-4.7": 3
     },
+    "jury_steering_caught": {},
     "sandbox_runs": null,
     "sandbox_estimate_usd": null,
     "models_refusing_temperature": [],
