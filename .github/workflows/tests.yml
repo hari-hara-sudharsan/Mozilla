@@ -21,6 +21,7 @@ jobs:
         run: |
           PYTHONPATH=src python -m offramp verify evidence/live-2 --head 9a350b4471ef77a95d423ed3923d0a7a41d387e34c4821c67eff5851a021391b
           PYTHONPATH=src python -m offramp verify evidence/live-4-hard --head b443d82811a1636ed70c441f0af9bcf6da1563f67a9a03088b9190482a078cc2
+          PYTHONPATH=src python -m offramp verify evidence/enduser-budget --head cee9dfccff1fb55e134d4c9000af4cd9f531d37e87843ed49d096df953909f54
       - name: Explorer matches the Python statistics
         run: |
           python explorer/build.py

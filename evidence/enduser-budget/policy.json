@@ -1,0 +1,23 @@
+{
+  "offramp-classify": {
+    "select": [
+      {
+        "default": "xai/grok-4.7"
+      }
+    ]
+  },
+  "offramp-extract": {
+    "select": [
+      {
+        "default": "xai/grok-4.7"
+      }
+    ]
+  },
+  "offramp-math": {
+    "select": [
+      {
+        "default": "xai/grok-4.7"
+      }
+    ]
+  }
+}

@@ -397,6 +397,8 @@ class Engine:
             print(f"warning: this key can spend ${gateway_start:.2f}, "
                   f"which is under the ${self.config.budget_usd:.2f} budget")
         config = asdict(self.config)
+        # Secrets never enter the ledger, which is meant to be published.
+        config["guardrail_token"] = "set" if self.config.guardrail_token else None
         self.ledger.append(
             "run_start", run_id=self.run_id, config=config, workload_sha256=self.digest,
             simulated=self.client.simulated, gateway_remaining_usd=gateway_start,

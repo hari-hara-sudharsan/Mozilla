@@ -130,6 +130,23 @@ uv run offramp guardrail-serve                 # reads OFFRAMP_GUARDRAIL_TOKEN f
 uv run offramp run ... --guardrail-url https://<your-tunnel>
 ```
 
+## Every run can have its own budget at the gateway
+
+A client-side budget only sees the costs a response reports. That gap drained this
+project's first $20, because sandbox runs report no price. So Offramp can bill a run
+to an **Otari end user** on a service key, and then Otari refuses that run once its
+own budget is spent, whatever the client believes:
+
+```bash
+uv run offramp run ... --end-user nightly-2026-11-11      # OTARI_API_KEY is a service key
+```
+
+Live on November 11, 2026, with a $0.01 daily end-user budget and Offramp's own budget
+set to $1, the run made 19 calls and was then stopped by Otari:
+`403 budget_exceeded: End user 'offramp-run-evidence-2' has $0.001642 of budget remaining`.
+Other end users on the same key were still served. The ledger is in
+[`evidence/enduser-budget/`](evidence/enduser-budget/) (head `cee9dfccff1fb55e134d4c9000af4cd9f531d37e87843ed49d096df953909f54`).
+
 ## Keep proving it in production
 
 A route that was safe last month can slip: a provider updates its model, or your
@@ -206,7 +223,7 @@ is pinned to it.
 | Routing and fallbacks | The output is `routing.policies` with `on_failure` chains. On hosted Otari, create them on the Routing page, since an API key can't write them. `offramp apply` serves deployments where the caller can. |
 | Code execution | `POST /code/execute` grades generated code in the sandbox. |
 | Guardrails | Offramp's jury screen runs as an Otari guardrail service in `block` mode, so Otari refuses an answer that addresses its judges before any juror model is called. Verified live: 24 of 24 attacks blocked, honest answers evaluated and passed. |
-| Per-user budgets | `--end-user run-42` bills a run, sandbox included, to an Otari end user on a service key, so its budget is enforced by the gateway as well as by Offramp. `offramp guard --end-user` gives shadow traffic a budget of its own. |
+| Per-user budgets | `--end-user run-42` bills a run to an Otari end user on a service key, so the gateway enforces that run's own budget. Verified live: a run did 19 calls and was then refused with `End user 'offramp-run-evidence-2' has $0.001642 of budget remaining`, while other end users on the same key kept being served. `offramp guard --end-user` gives shadow traffic a budget of its own. |
 | Live guard | `offramp guard` sits in front of a routing policy, compares a sample of answers with the incumbent in the background, and rolls a segment back on evidence of regression. |
 | Decisions API | `--decision-model` adds a typed `choice` juror through `POST /decisions`, on deployments with a decision provider. Hosted Otari had none configured as of November 7, 2026, so the published run doesn't use it. |
 | Budgets | `--budget` is a hard stop, enforced from `usage.cost_usd` plus sandbox runs. Offramp stops cleanly on `403 budget_exceeded` and `402 insufficient_funds`, and reads `GET /key/budget` to also respect the key's own spend ceiling. |

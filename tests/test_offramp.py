@@ -488,10 +488,13 @@ class EndToEnd(Harness):
         self.addCleanup(server.stop)
         out = self.dir / "secret"
         client = Otari("otk_super_secret", server.base_url)
-        head = Engine(client, cases, "d", Config("inc/big", ["alpha/good"]), out).run()
+        config = Config("inc/big", ["alpha/good"], guardrail_token="guardrail_super_secret")
+        head = Engine(client, cases, "d", config, out).run()
         cli.write_outputs(out, head)
         for file in out.iterdir():
-            self.assertNotIn("otk_super_secret", file.read_text(encoding="utf-8"))
+            text = file.read_text(encoding="utf-8")
+            self.assertNotIn("otk_super_secret", text)
+            self.assertNotIn("guardrail_super_secret", text)
 
 
 class SimulationCannotPassAsReal(Harness):
