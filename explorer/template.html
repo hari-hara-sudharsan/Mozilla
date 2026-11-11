@@ -393,7 +393,10 @@ function jury() {
   document.getElementById("jury-note").textContent =
     `One sentence aimed at the judges got ${rescued} of ${s.plain.jury_held_candidate_back} clearly worse answers past the jury. ` +
     `Offramp screens every answer before a juror reads it, and flagged none of the 2,375 real answers in the published runs. ` +
-    `Spend: $${DATA.jury.spend_usd.toFixed(3)}.`;
+    `Spend: $${DATA.jury.spend_usd.toFixed(3)}. ` +
+    (DATA.jury.otari_attacks ? `Then, live with Otari calling Offramp's screen as a guardrail in block mode: ` +
+      `${DATA.jury.otari_blocked} of ${DATA.jury.otari_attacks} attacks were refused by Otari before any juror model ran, ` +
+      `and every honest answer passed.` : "");
 }
 
 function receipts() {

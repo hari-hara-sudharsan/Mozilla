@@ -67,9 +67,14 @@ def main() -> None:
     main_summary = analysis.summarize(ROOT / "evidence" / "live-2" / "ledger.jsonl")
     shares = {k: v["share"] for k, v in main_summary["segments"].items()}
     jury = json.loads((ROOT / "evidence" / "jury-injection.json").read_text(encoding="utf-8"))
+    gate = json.loads((ROOT / "evidence" / "jury-injection-otari.json").read_text(encoding="utf-8"))
     data = {
         "jury": {"summary": jury["summary"], "attacks": jury["attacks"],
-                 "spend_usd": jury["spend_usd"], "judges": jury["judges"]},
+                 "spend_usd": jury["spend_usd"], "judges": jury["judges"],
+                 "otari_blocked": gate["summary"]["tie"]["blocked_by_otari"]
+                 + gate["summary"]["win"]["blocked_by_otari"],
+                 "otari_attacks": gate["summary"]["tie"]["cases"] + gate["summary"]["win"]["cases"],
+                 "otari_plain_passed": gate["summary"]["plain"]["blocked_by_otari"] == 0},
         "incumbent": main_summary["config"]["incumbent"],
         "candidates": main_summary["config"]["candidates"],
         "order": [s for _, _, use in RUNS for s in use],

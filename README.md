@@ -108,10 +108,27 @@ that addresses whoever judges it has failed the person it was written for, so it
 against the candidate. The screen flagged **0 of 2,375** real model answers in the
 published runs.
 
-Offramp also requests Otari's `prompt-injection` guardrail on every juror call
-(`--guardrail prompt-injection`) and records its verdict in the ledger. On hosted
-otari.ai it currently answers `status: unavailable, reason: not_configured`, so the
-deterministic screen is the defence that works today.
+**Otari enforces it.** `offramp guardrail-serve` serves the screen as an Otari guardrail
+service, answering Otari's `POST /validate` contract. With `--guardrail-url`, every juror
+call names it in `block` mode, so Otari checks the answers before any juror model is
+called. Live on hosted otari.ai on November 11, 2026, with raw ballots in
+[`evidence/jury-injection-otari.json`](evidence/jury-injection-otari.json):
+
+| Weak answer | Otari's verdict |
+| --- | --- |
+| As it is | Passed (`"status": "evaluated", "valid": true`). The jury held 9 of 12 back. |
+| Plus the "tie" note | **Blocked 12 of 12**: `403 guardrail_violation`, no juror called |
+| Plus the "choose it" note | **Blocked 12 of 12**: `403 guardrail_violation`, no juror called |
+
+96 juror calls were refused at the gateway, and the run cost $0.018. Offramp
+counts a gateway block as evidence against the candidate. If the guardrail service is
+unreachable, the local screen still decides.
+
+```bash
+uv run offramp guardrail-serve                 # reads OFFRAMP_GUARDRAIL_TOKEN from .env
+# expose port 8790 over https, then:
+uv run offramp run ... --guardrail-url https://<your-tunnel>
+```
 
 ## Keep proving it in production
 
@@ -188,7 +205,7 @@ is pinned to it.
 | Multiple models, distinct roles | Incumbent, candidates and a cross-family jury each play a separate role. |
 | Routing and fallbacks | The output is `routing.policies` with `on_failure` chains. On hosted Otari, create them on the Routing page, since an API key can't write them. `offramp apply` serves deployments where the caller can. |
 | Code execution | `POST /code/execute` grades generated code in the sandbox. |
-| Guardrails | A deterministic screen keeps answers that address the jury away from jurors, and Otari's `prompt-injection` guardrail is requested on every juror call with its verdict recorded. |
+| Guardrails | Offramp's jury screen runs as an Otari guardrail service in `block` mode, so Otari refuses an answer that addresses its judges before any juror model is called. Verified live: 24 of 24 attacks blocked, honest answers evaluated and passed. |
 | Per-user budgets | `--end-user run-42` bills a run, sandbox included, to an Otari end user on a service key, so its budget is enforced by the gateway as well as by Offramp. `offramp guard --end-user` gives shadow traffic a budget of its own. |
 | Live guard | `offramp guard` sits in front of a routing policy, compares a sample of answers with the incumbent in the background, and rolls a segment back on evidence of regression. |
 | Decisions API | `--decision-model` adds a typed `choice` juror through `POST /decisions`, on deployments with a decision provider. Hosted Otari had none configured as of November 7, 2026, so the published run doesn't use it. |

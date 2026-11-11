@@ -280,6 +280,7 @@ def cmd_capture(args: argparse.Namespace) -> int:
 
 
 def cmd_guardrail_serve(args: argparse.Namespace) -> int:
+    load_env()
     token = os.environ.get("OFFRAMP_GUARDRAIL_TOKEN")
     server = GuardrailServer(args.port, token)
     print(f"Jury-steering guardrail on http://127.0.0.1:{args.port}/validate "
