@@ -1,35 +1,87 @@
-# Offramp
+<div align="center">
 
-[![tests](https://github.com/hari-hara-sudharsan/Mozilla/actions/workflows/tests.yml/badge.svg?branch=otari-hackathon)](https://github.com/hari-hara-sudharsan/Mozilla/actions/workflows/tests.yml)
+# Offramp
 
 **Prove you can leave your frontier model.**
 
-**[Open the Evidence Explorer](https://claude.ai/artifact/1gY3dtQbMJDjH545CV9voV)** to explore the live results in your browser.
-It recomputes every verdict from the real scores as you change the settings.
+[![tests](https://github.com/hari-hara-sudharsan/Mozilla/actions/workflows/tests.yml/badge.svg?branch=otari-hackathon)](https://github.com/hari-hara-sudharsan/Mozilla/actions/workflows/tests.yml)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)
+![Built on Otari](https://img.shields.io/badge/built%20on-Otari%20by%20Mozilla.ai-0a6a44)
+
+**[Evidence Explorer](https://claude.ai/artifact/1gY3dtQbMJDjH545CV9voV)** ·
+**[Demo video](https://youtu.be/GYVkpMLqjN8)** ·
+**[Feedback video](https://youtu.be/u-kIXBs5biY)** ·
+[Statistics](docs/statistics.md) ·
+[Evidence](evidence/)
+
+</div>
+
+---
 
 Everyone would like to move traffic to open-weight models. Almost nobody does,
 because nobody can show it's safe. A vibe check on ten prompts won't convince the
 person who owns the production incident, and a full evaluation costs real money
 and engineering time.
 
-Offramp replays your real LLM traffic on open-weight models through
-[Otari](https://otari.ai). It stops paying the moment the statistics are settled,
-then hands you the Otari routing policy the evidence earned, with receipts anyone
-can recheck.
+**Offramp replays your real LLM traffic on open-weight models through
+[Otari](https://otari.ai), stops paying the moment the statistics are settled, and
+hands you the Otari routing policy the evidence earned, with receipts anyone can
+recheck.** After deployment it keeps checking, and rolls a route back if it slips.
 
-```
-$ offramp run --workload traffic.jsonl --incumbent anthropic:claude-sonnet-4-6 \
-    --candidates deepseek/deepseek-v4-pro-0813,... --judges ... --budget 2 --out runs/q4
-```
+## At a glance
 
-Try it now, with no key and no cost:
+| | Live result on hosted Otari |
+| --- | --- |
+| 🛣️ **Traffic that can move** | **75.5%** of requests proven safe on open-weight models, out of 978 synthetic tasks |
+| 💰 **Cost** | **−22%**, from $6.26 to $4.88 per 1,000 requests. The hard work stays on the frontier model, because cheap models failed it. |
+| 🚫 **Routes refused** | Hard extraction and hard math stay on Grok. Two cheap models scored 0 of 10. |
+| 🛡️ **Jury attacks** | One sentence fooled the AI jury 4 times in 9. **Otari blocked 24 of 24** through Offramp's guardrail. |
+| 💳 **Per-user budgets** | Otari stopped a run at its own end-user limit after 19 calls |
+| 🔁 **Live routing** | The proven `offramp-classify` policy serves real traffic on `glm-4.7-flash` |
+| 🔒 **Tamper-proof** | Every verdict recomputes from a hash-chained ledger. One edited score fails `offramp verify`. |
+| ✅ **Quality** | 80 tests, plus CI that re-verifies all published evidence on every push |
 
 ```bash
-uv run offramp demo --out runs/demo
+uv run offramp demo          # see it work offline: no key, no cost
+uv run offramp demo-guard    # watch the guard roll back a model that got worse
 ```
 
-The demo uses fictional models on a local simulator, and its report says so on
-every page. It shows how Offramp works, and it says nothing about any real model.
+## How it uses Otari
+
+| Otari feature | What Offramp does with it | Live |
+| --- | --- | :---: |
+| **Open-weight models** | Three candidates (`gpt-oss-120b`, `deepseek-v4-flash`, `glm-4.7-flash`) and two jurors (`gemma-3-27b`, `llama-3.3-70b`) | ✅ |
+| **Multiple models, distinct roles** | Incumbent, candidates and a cross-family jury, each with its own job | ✅ |
+| **Routing and fallbacks** | Writes one `routing.policies` entry per segment, with the incumbent as the last fallback. `offramp-classify` serves live traffic. | ✅ |
+| **Code execution** | `POST /code/execute` grades generated code against its tests in the sandbox, never on your machine | ✅ |
+| **Budgets** | A hard per-run budget from `usage.cost_usd` plus sandbox runs. Clean stops on `403 budget_exceeded` and `402 insufficient_funds`. | ✅ |
+| **Guardrails** | Offramp's jury screen runs as an Otari guardrail service in `block` mode. Otari refused 24 of 24 attacks before any juror ran. | ✅ |
+| **Per-user budgets** | `--end-user` bills a run to an Otari end user on a service key, and Otari enforces that run's own limit | ✅ |
+| Exact cost, tags, idempotency | `usage.cost_usd` feeds the savings maths. Every call is tagged by run, role and segment, and retried safely with an `Idempotency-Key`. | ✅ |
+| Decisions API | `--decision-model` adds a typed juror through `POST /decisions`. Hosted Otari has no decision provider configured, so it isn't used in the published runs. | — |
+
+## Built for MozFest Developers Wilding
+
+| | |
+| --- | --- |
+| Hackathon branch | [`otari-hackathon`](https://github.com/hari-hara-sudharsan/Mozilla/tree/otari-hackathon) |
+| First commit with Otari | [`bb3a0b2`](https://github.com/hari-hara-sudharsan/Mozilla/commit/bb3a0b2ce41643bf37e6e20ad1cd2bd7542b2cf3) |
+| Issues and comments on the Otari repo | [#2864 (comment)](https://github.com/mozilla-ai/otari/issues/2864#issuecomment-6786287408) · [#3141](https://github.com/mozilla-ai/otari/issues/3141) · [#3144](https://github.com/mozilla-ai/otari/issues/3144) |
+| Demo video | [Watch](https://youtu.be/GYVkpMLqjN8) |
+| Feedback video | [Watch](https://youtu.be/u-kIXBs5biY) |
+
+## Contents
+
+- [Results from a live run](#results-from-a-live-run)
+- [The jury can't be talked into it](#the-jury-cant-be-talked-into-it)
+- [Every run can have its own budget at the gateway](#every-run-can-have-its-own-budget-at-the-gateway)
+- [Keep proving it in production](#keep-proving-it-in-production)
+- [What makes it different](#what-makes-it-different)
+- [Quick start](#quick-start)
+- [What the guarantee does and does not cover](#what-the-guarantee-does-and-does-not-cover)
+
+---
 
 ## Results from a live run
 
@@ -213,23 +265,6 @@ degrades to today's behaviour instead of dropping the request.
 ledger. `offramp verify` checks the chain and recomputes every verdict, the
 results and the policy from the raw scores. Publish the ledger head and the run
 is pinned to it.
-
-## How it uses Otari
-
-| Otari feature | What Offramp does with it |
-| --- | --- |
-| Open-weight models | They are the point of the tool. Candidates and jurors all go through one endpoint. |
-| Multiple models, distinct roles | Incumbent, candidates and a cross-family jury each play a separate role. |
-| Routing and fallbacks | The output is `routing.policies` with `on_failure` chains. On hosted Otari, create them on the Routing page, since an API key can't write them. `offramp apply` serves deployments where the caller can. |
-| Code execution | `POST /code/execute` grades generated code in the sandbox. |
-| Guardrails | Offramp's jury screen runs as an Otari guardrail service in `block` mode, so Otari refuses an answer that addresses its judges before any juror model is called. Verified live: 24 of 24 attacks blocked, honest answers evaluated and passed. |
-| Per-user budgets | `--end-user run-42` bills a run to an Otari end user on a service key, so the gateway enforces that run's own budget. Verified live: a run did 19 calls and was then refused with `End user 'offramp-run-evidence-2' has $0.001642 of budget remaining`, while other end users on the same key kept being served. `offramp guard --end-user` gives shadow traffic a budget of its own. |
-| Live guard | `offramp guard` sits in front of a routing policy, compares a sample of answers with the incumbent in the background, and rolls a segment back on evidence of regression. |
-| Decisions API | `--decision-model` adds a typed `choice` juror through `POST /decisions`, on deployments with a decision provider. Hosted Otari had none configured as of November 7, 2026, so the published run doesn't use it. |
-| Budgets | `--budget` is a hard stop, enforced from `usage.cost_usd` plus sandbox runs. Offramp stops cleanly on `403 budget_exceeded` and `402 insufficient_funds`, and reads `GET /key/budget` to also respect the key's own spend ceiling. |
-| Exact cost | `usage.cost_usd` feeds the ledger, the cost comparison and the savings projection. |
-| Request tags | Every call carries `metadata` with its run, role and segment, so spend can be grouped by tag in Otari. |
-| Idempotency | Every call has a deterministic `Idempotency-Key`, so a retry after a lost response isn't billed twice. |
 
 ## Quick start
 
