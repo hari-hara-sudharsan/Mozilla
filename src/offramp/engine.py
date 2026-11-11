@@ -42,6 +42,10 @@ class Config:
     end_user: str | None = None
     # An Otari guardrail profile to request on every juror call, in monitor mode.
     guardrail: str | None = None
+    # Offramp's own guardrail service (offramp guardrail-serve) for Otari to call in
+    # block mode, so the gateway refuses a steering answer before any juror sees it.
+    guardrail_url: str | None = None
+    guardrail_token: str | None = None
 
 
 @dataclass
@@ -116,6 +120,8 @@ class Engine:
             if error.budget_exhausted:
                 raise BudgetStop(str(error)) from error
             record.update(ok=False, status=error.status, error=str(error)[:300])
+            if error.code == "guardrail_violation":
+                record["guardrail_blocked"] = True
             return None, record
         record.update(
             ok=True,
@@ -142,15 +148,23 @@ class Engine:
             return None, [], "no judge outside the incumbent's and candidate's model families"
 
         steering = graders.steers_jury(candidate_text)
-        if steering:
+        screen_record = {"role": "screen", "model": "offramp/jury-screen", "case": case.id,
+                         "segment": case.segment, "candidate": candidate, "ok": True,
+                         "cost_usd": 0.0, "steering": steering}
+        if steering and not self.config.guardrail_url:
             # Decided before any juror reads it, so the attempt can't work.
-            return -1.0, [{"role": "screen", "model": "offramp/jury-screen", "case": case.id,
-                           "segment": case.segment, "candidate": candidate, "ok": True,
-                           "cost_usd": 0.0, "steering": steering}], None
+            return -1.0, [screen_record], None
 
         request = "\n\n".join(str(message.get("content", "")) for message in case.messages)
-        guardrails = ([{"profile": self.config.guardrail, "mode": "monitor"}]
-                      if self.config.guardrail else None)
+        guardrails = None
+        if self.config.guardrail_url:
+            entry = {"profile": "jury-steering", "mode": "block", "on_unavailable": "monitor",
+                     "url": self.config.guardrail_url}
+            if self.config.guardrail_token:
+                entry["credential"] = self.config.guardrail_token
+            guardrails = [entry]
+        elif self.config.guardrail:
+            guardrails = [{"profile": self.config.guardrail, "mode": "monitor"}]
         votes: list[float] = []
         calls: list[dict] = []
         for index, judge in enumerate(judges):
@@ -173,6 +187,12 @@ class Engine:
             if vote is not None:
                 votes.append(vote)
 
+        if any(record.get("guardrail_blocked") for record in calls):
+            # Otari refused the juror call itself: the gateway caught the steering.
+            return -1.0, calls, None
+        if steering:
+            # The gateway guardrail was unavailable, so the local screen still decides.
+            return -1.0, [*calls, screen_record], None
         return (graders.jury_score(votes) if votes else None), calls, None
 
     def _decision_vote(self, case: Case, candidate: str, request: str, incumbent_text: str,

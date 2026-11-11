@@ -14,6 +14,7 @@ from pathlib import Path
 from . import analysis, graders, ledger, report, simulator, workload
 from .capture import CaptureProxy
 from .guard import Guard
+from .guardrail import GuardrailServer
 from .engine import Config, Engine
 from .otari import DEFAULT_BASE_URL, Otari, OtariError, load_env
 
@@ -75,6 +76,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         decision_model=args.decision_model, budget_usd=args.budget,
         sandbox_cost_usd=args.sandbox_cost, margin=args.margin,
         end_user=args.end_user, guardrail=args.guardrail,
+        guardrail_url=args.guardrail_url, guardrail_token=os.environ.get("OFFRAMP_GUARDRAIL_TOKEN"),
         alpha=args.alpha, seed=args.seed, batch=args.batch, workers=args.workers,
         store_text=args.store_text,
     )
@@ -277,6 +279,20 @@ def cmd_capture(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_guardrail_serve(args: argparse.Namespace) -> int:
+    token = os.environ.get("OFFRAMP_GUARDRAIL_TOKEN")
+    server = GuardrailServer(args.port, token)
+    print(f"Jury-steering guardrail on http://127.0.0.1:{args.port}/validate "
+          f"({'bearer credential required' if token else 'no credential'}).")
+    print("Expose it over https, then pass that URL as --guardrail-url. Ctrl+C to stop.")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    print(f"Checked {server.checked}, flagged {server.flagged}.")
+    return 0
+
+
 def cmd_guard(args: argparse.Namespace) -> int:
     out = Path(args.out)
     guard = Guard(_client(), args.incumbent, _split(args.judges), out, args.port,
@@ -363,6 +379,8 @@ def build_parser() -> argparse.ArgumentParser:
                      "its budget caps the whole run at the gateway")
     run.add_argument("--guardrail", help="Otari guardrail profile to request on juror calls, "
                      "e.g. prompt-injection")
+    run.add_argument("--guardrail-url", help="public https URL of `offramp guardrail-serve`, "
+                     "which Otari calls in block mode on every juror request")
     run.add_argument("--out", required=True)
     run.set_defaults(func=cmd_run)
 
@@ -404,6 +422,11 @@ def build_parser() -> argparse.ArgumentParser:
     models = commands.add_parser("models", help="list models this key can use")
     models.add_argument("--grep", default="")
     models.set_defaults(func=cmd_models)
+
+    serve = commands.add_parser("guardrail-serve",
+                                help="serve the jury screen as an Otari guardrail service")
+    serve.add_argument("--port", type=int, default=8790)
+    serve.set_defaults(func=cmd_guardrail_serve)
 
     guard = commands.add_parser("guard", help="keep proving routes in production, roll back on regression")
     guard.add_argument("--incumbent", required=True)

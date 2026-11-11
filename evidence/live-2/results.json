@@ -7446,6 +7446,7 @@
       "z-ai/glm-4.7-flash": 1
     },
     "jury_steering_caught": {},
+    "jury_steering_blocked_by_otari": {},
     "sandbox_runs": null,
     "sandbox_estimate_usd": null,
     "models_refusing_temperature": [

@@ -229,6 +229,8 @@ def _parse_error(error: urllib.error.HTTPError) -> OtariError:
         return OtariError(error.code, "http_error", raw[:300])
     detail = body.get("error") or body.get("detail") or body
     if isinstance(detail, dict):
+        # Hosted guardrail refusals nest their code: {"detail": {"code": ...}}.
         code = str(detail.get("code") or detail.get("type") or body.get("code") or "http_error")
-        return OtariError(error.code, code, str(detail.get("message") or detail)[:300])
+        message = detail.get("message") or detail.get("error") or detail
+        return OtariError(error.code, code, str(message)[:300])
     return OtariError(error.code, str(body.get("code") or "http_error"), str(detail)[:300])

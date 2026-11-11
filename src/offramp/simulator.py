@@ -17,6 +17,7 @@ import json
 import re
 import socketserver
 import threading
+import urllib.request
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -194,6 +195,23 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(400, {"detail": "No model accepted the request (2 attempts).",
                              "code": "all_candidates_rejected"})
             return
+
+        for entry in body.get("guardrails") or []:
+            if entry.get("url") and entry.get("mode") == "block":
+                latest = next((m.get("content", "") for m in reversed(body["messages"])
+                               if m.get("role") == "user"), "")
+                request = urllib.request.Request(
+                    entry["url"].rstrip("/") + "/validate",
+                    data=json.dumps({"profile": entry["profile"], "input_text": latest}).encode(),
+                    headers={"Content-Type": "application/json",
+                             **({"Authorization": f"Bearer {entry['credential']}"}
+                                if entry.get("credential") else {})})
+                with urllib.request.urlopen(request, timeout=10) as response:
+                    result = json.load(response)["result"]
+                if result.get("valid") is False:
+                    self._send(403, {"detail": {"error": "Request blocked by guardrail",
+                                                "code": "guardrail_violation"}})
+                    return
 
         messages = body["messages"]
         if messages[0].get("content") == JUDGE_SYSTEM:
