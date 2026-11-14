@@ -63,7 +63,7 @@ def run_data(name: str, label: str, use: list[str], shares: dict) -> dict:
     return {"name": f"{label} ({name})", "head": head, "use": use, "arms": arms, "segments": segments}
 
 
-def main() -> None:
+def build_data() -> dict:
     main_summary = analysis.summarize(ROOT / "evidence" / "live-2" / "ledger.jsonl")
     shares = {k: v["share"] for k, v in main_summary["segments"].items()}
     jury = json.loads((ROOT / "evidence" / "jury-injection.json").read_text(encoding="utf-8"))
@@ -80,10 +80,16 @@ def main() -> None:
         "order": [s for _, _, use in RUNS for s in use],
         "runs": [run_data(name, label, use, shares) for name, label, use in RUNS],
     }
+    return data
+
+
+def main() -> None:
+    data = build_data()
     template = (ROOT / "explorer" / "template.html").read_text(encoding="utf-8")
     page = template.replace("/*__DATA__*/null", json.dumps(data, separators=(",", ":")))
     (ROOT / "explorer" / "index.html").write_text(page, encoding="utf-8")
     print(f"explorer/index.html: {len(page):,} bytes")
 
 
-main()
+if __name__ == "__main__":
+    main()
